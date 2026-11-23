@@ -14,7 +14,7 @@ O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme 
 
 ![Tema escuro agrupado](docs/prints/02-tema-escuro-agrupado.png)
 
-**Material compacto: filtro no cabeçalho, linha de filtro, barra de filtros ativos e regras de linha (`rowClass` / `rowStyle`)**
+**Material compacto: funil no cabeçalho, linha de filtro, barra de filtros ativos embaixo da tabela (cada filtro com × para remover), regras de linha (`rowClass` / `rowStyle`) e célula por função (`cellRender`)**
 
 ![Material com filtros e regras](docs/prints/03-material-filtros-regras.png)
 
@@ -30,14 +30,16 @@ O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme 
 
 - **Dados:** 500 linhas, 100 mil linhas (rolagem virtual) ou servidor simulado (`remoteData`)
 - **Aparência:** tema (`default`, `bootstrap4`, `bootstrap5`, `tailwind`, `material`), claro/escuro/auto, densidade, idioma e cor de destaque
-- **Filtro e busca:** linha de filtro, funil no cabeçalho, busca global, barra de filtros ativos
+- **Filtro e busca:** linha de filtro, funil no cabeçalho, busca global, barra de filtros ativos embaixo da tabela (`show-filter-panel`) e filtros iniciais (`filterValue`, `selectedFilterOperation`, `filterValues`, `filterType`)
 - **Colunas:** seletor, arrastar, redimensionar, largura pelo conteúdo, coluna fixa, coluna opcional
 - **Seleção:** nenhuma, única ou múltipla
 - **Paginação:** tamanho da página, seletor de tamanho, info
 - **Agrupamento:** painel de grupos, agrupar ao abrir, expandir/recolher, totais por grupo
-- **Totais e regras:** totais no rodapé, `rowClass`, `rowStyle`, `cssClass` e templates de célula (`bmCellTemplate`)
-- **Exportação:** Excel e CSV, nome do arquivo
-- **Estado:** `stateStoring` (localStorage) e texto de "sem dados"
+- **Totais e regras:** totais no rodapé, `rowClass`, `rowStyle`, `cssClass`, templates de célula (`bmCellTemplate`) e `cellRender` + `cellStyles`
+- **Exportação:** Excel e CSV, nome do arquivo e da aba (`export-sheet-name`)
+- **Estado e textos:** `stateStoring` (localStorage), `messages` (textos personalizados), `loading` e texto de "sem dados"
+- **Servidor:** `remoteData` e `remoteHeaderFilter` (valores do funil vindos do servidor)
+- **Teclado:** setas, Enter (`row-enter`), espaço seleciona, Ctrl+A, Ctrl+C copia para o Excel (`copy-rows`)
 - **Métodos:** `selectAll`, `selectRows`, `sortBy`, `groupBy`, `expandAll`, `navigateToRow`, `exportToExcel`, `resetColumnLayout`…
 
 ## Rodar

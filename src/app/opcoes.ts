@@ -21,6 +21,7 @@ export interface Opcoes {
   showHeaderFilter: boolean;
   showSearchPanel: boolean;
   showFilterPanel: boolean;
+  filtrosIniciais: boolean;
 
   // Colunas
   columnChooserEnabled: boolean;
@@ -54,16 +55,20 @@ export interface Opcoes {
   rowStyle: boolean;
   cssClassCelula: boolean;
   cellTemplates: boolean;
+  cellRender: boolean;
 
   // Exportação
   showExportButton: boolean;
   exportXlsx: boolean;
   exportCsv: boolean;
   exportFileName: string;
+  exportSheetName: string;
 
   // Estado / textos
   stateStoring: boolean;
   noDataText: string;
+  mensagens: boolean;
+  loading: boolean;
 }
 
 export const OPCOES_PADRAO: Opcoes = {
@@ -80,7 +85,8 @@ export const OPCOES_PADRAO: Opcoes = {
   showFilterRow: true,
   showHeaderFilter: true,
   showSearchPanel: true,
-  showFilterPanel: false,
+  showFilterPanel: true,
+  filtrosIniciais: false,
   columnChooserEnabled: true,
   allowColumnReordering: true,
   allowColumnResizing: true,
@@ -102,10 +108,14 @@ export const OPCOES_PADRAO: Opcoes = {
   rowStyle: false,
   cssClassCelula: true,
   cellTemplates: true,
+  cellRender: false,
   showExportButton: true,
   exportXlsx: true,
   exportCsv: true,
   exportFileName: 'faturas',
+  exportSheetName: 'Faturas',
   stateStoring: false,
   noDataText: '',
+  mensagens: false,
+  loading: false,
 };

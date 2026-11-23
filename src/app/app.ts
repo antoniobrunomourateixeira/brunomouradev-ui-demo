@@ -6,11 +6,12 @@ import type {
   PagingOptions,
   RemoteLoadOptions,
   RemoteLoadResult,
+  DataGridMessages,
   RowStyle,
   StateStoringOptions,
   SummaryItem,
 } from '@brunomouradev/data-grid';
-import { applyFilters, applySearch, applySort, resolveColumns } from '@brunomouradev/data-grid/engine';
+import { applyFilters, applyHeaderFilters, applySearch, applySort, getField, resolveColumns } from '@brunomouradev/data-grid/engine';
 import { BmCellTemplateDirective, BmDataGridTemplatesDirective } from './bm-cell-template.directive';
 import { Fatura, gerarFaturas } from './data';
 import { ArquivoCodigo, INSTALACAO, Linguagem, gerarCodigo } from './gerador-codigo';
@@ -29,6 +30,27 @@ interface Evento {
   nome: string;
   detalhe: string;
 }
+
+/** Textos trocados pela opção "Textos personalizados" (messages). */
+const MENSAGENS: Partial<DataGridMessages> = {
+  searchPlaceholder: 'Buscar fatura, cliente, vendedor…',
+  clearFilters: 'Limpar tudo',
+  noData: 'Nenhuma fatura encontrada',
+};
+
+/** cellRender: a célula é montada por uma função; o CSS vai por cellStyles (dentro do Shadow DOM). */
+const ICONES: Record<string, string> = { Pix: '◆', Boleto: '▥', Cartão: '▭', Transferência: '⇄' };
+const renderForma = (valor: string) => {
+  const el = document.createElement('span');
+  el.className = 'forma forma-' + valor.normalize('NFD').replace(/[^a-zA-Z]/g, '').toLowerCase();
+  el.textContent = `${ICONES[valor] ?? '•'} ${valor}`;
+  return el;
+};
+const CSS_FORMA = `.forma { display: inline-flex; gap: 4px; padding: 1px 8px; border-radius: 6px; font-size: 12px; }
+.forma-pix { background: #e6fcf5; color: #087f5b; }
+.forma-boleto { background: #fff4e6; color: #d9480f; }
+.forma-cartao { background: #f3f0ff; color: #6741d9; }
+.forma-transferencia { background: #e7f5ff; color: #1971c2; }`;
 
 const TOTAIS: SummaryItem[] = [
   { column: 'id', summaryType: 'count', displayFormat: '{0} faturas' },
@@ -82,6 +104,7 @@ export class App {
     const locale = this.o().locale;
     const cols = resolveColumns(this.colunas(), this.local);
     let linhas = applyFilters(this.local, op.filters, cols);
+    linhas = applyHeaderFilters(linhas, op.headerFilters, cols);
     linhas = applySearch(linhas, op.searchText, cols, locale);
     linhas = applySort(linhas, op.sorts, cols, locale);
     const soma = linhas.reduce((s, l) => s + l.valor, 0);
@@ -93,22 +116,37 @@ export class App {
     };
   };
 
+  /** Valores do funil no modo servidor (o servidor devolve os valores distintos da coluna). */
+  readonly funilRemoto = async (campo: string): Promise<any[]> => {
+    await new Promise((r) => setTimeout(r, 150));
+    return [...new Set(this.local.map((l) => getField(l, campo)))];
+  };
+
   // ───────── Configuração da grid derivada das opções ─────────
-  readonly colunas = this.derivar(['fixarId', 'colunaOpcional', 'cellTemplates', 'cssClassCelula', 'agruparPor'], (o): ColumnDef<Fatura>[] => {
+  readonly colunas = this.derivar(['fixarId', 'colunaOpcional', 'cellTemplates', 'cssClassCelula', 'agruparPor', 'filtrosIniciais', 'cellRender'], (o): ColumnDef<Fatura>[] => {
     const g = (campo: string) => (o.agruparPor === campo ? { groupIndex: 0 } : {});
     const cols: ColumnDef<Fatura>[] = [
       { dataField: 'id', caption: 'Nº', width: 80, format: 'integer', allowHiding: false, fixed: o.fixarId || undefined },
       { dataField: 'cliente.nome', caption: 'Cliente', minWidth: 180 },
       { dataField: 'cliente.uf', caption: 'UF', width: 70, alignment: 'center', ...g('cliente.uf') },
       { dataField: 'vendedor', caption: 'Vendedor', ...g('vendedor') },
-      { dataField: 'status', caption: 'Status', cellTemplate: o.cellTemplates ? 'status' : undefined, ...g('status') },
-      { dataField: 'forma', caption: 'Forma de pgto' },
+      {
+        dataField: 'status',
+        caption: 'Status',
+        cellTemplate: o.cellTemplates ? 'status' : undefined,
+        // filtro inicial do funil: tudo menos Cancelado
+        ...(o.filtrosIniciais ? { filterValues: ['Cancelado'], filterType: 'exclude' as const } : {}),
+        ...g('status'),
+      },
+      { dataField: 'forma', caption: 'Forma de pgto', cellRender: o.cellRender ? renderForma : undefined },
       { dataField: 'emissao', caption: 'Emissão', format: 'date', visible: o.colunaOpcional ? false : undefined },
       { dataField: 'vencimento', caption: 'Vencimento', format: 'date', sortOrder: 'asc' },
       {
         dataField: 'valor',
         caption: 'Valor',
         format: 'currency',
+        // filtro inicial da linha de filtro: valor >= 1000
+        ...(o.filtrosIniciais ? { filterValue: 1000, selectedFilterOperation: '>=' as const } : {}),
         cssClass: o.cssClassCelula ? (v: number) => (v < 0 ? 'negativo' : '') : undefined,
       },
       { dataField: 'desconto', caption: 'Desconto', format: 'percent' },
@@ -162,6 +200,11 @@ export class App {
           f.status === 'Cancelado' ? { color: '#868e96', 'text-decoration': 'line-through' } : null
       : undefined,
   );
+  readonly mensagens = this.derivar(['mensagens'], (o): Partial<DataGridMessages> =>
+    o.mensagens ? MENSAGENS : {},
+  );
+  readonly cellStyles = this.derivar(['cellRender'], (o) => (o.cellRender ? CSS_FORMA : ''));
+
   readonly estadoSalvo = this.derivar(['stateStoring'], (o): StateStoringOptions | undefined =>
     o.stateStoring ? { storageKey: 'prototipo-faturas-grid' } : undefined,
   );
@@ -182,7 +225,8 @@ export class App {
         { k: 'showFilterRow', rotulo: 'Linha de filtro', api: 'show-filter-row' },
         { k: 'showHeaderFilter', rotulo: 'Filtro no cabeçalho (funil)', api: 'show-header-filter' },
         { k: 'showSearchPanel', rotulo: 'Busca global', api: 'show-search-panel' },
-        { k: 'showFilterPanel', rotulo: 'Barra de filtros ativos', api: 'show-filter-panel' },
+        { k: 'showFilterPanel', rotulo: 'Barra de filtros ativos (embaixo)', api: 'show-filter-panel' },
+        { k: 'filtrosIniciais', rotulo: 'Começar já filtrado', api: 'filterValue / filterValues' },
       ],
     },
     {
@@ -212,7 +256,8 @@ export class App {
         { k: 'rowClass', rotulo: 'Atrasadas em vermelho', api: 'rowClass' },
         { k: 'rowStyle', rotulo: 'Canceladas riscadas', api: 'rowStyle' },
         { k: 'cssClassCelula', rotulo: 'Valor negativo em destaque', api: 'cssClass' },
-        { k: 'cellTemplates', rotulo: 'Templates de célula', api: 'cellTemplate' },
+        { k: 'cellTemplates', rotulo: 'Templates de célula (Angular)', api: 'cellTemplate' },
+        { k: 'cellRender', rotulo: 'Célula por função + CSS', api: 'cellRender / cellStyles' },
       ],
     },
   ];

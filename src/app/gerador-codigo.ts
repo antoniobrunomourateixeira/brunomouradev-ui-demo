@@ -45,8 +45,10 @@ function atributos(o: Opcoes): string[] {
     const f = formatos(o);
     if (f !== 'xlsx,csv') a.push(`export-formats="${f}"`);
     if (o.exportFileName && o.exportFileName !== 'dados') a.push(`export-file-name="${o.exportFileName}"`);
+    if (o.exportXlsx && o.exportSheetName && o.exportSheetName !== 'Dados') a.push(`export-sheet-name="${o.exportSheetName}"`);
   }
   if (o.noDataText) a.push(`no-data-text="${o.noDataText}"`);
+  if (o.loading) a.push('loading');
   return a;
 }
 
@@ -63,7 +65,10 @@ interface Prop {
 
 function propriedades(o: Opcoes): Prop[] {
   const p: Prop[] = [];
-  if (o.fonte === 'remoto') p.push({ nome: 'remoteData', variavel: 'carregar' });
+  if (o.fonte === 'remoto') {
+    p.push({ nome: 'remoteData', variavel: 'carregar' });
+    p.push({ nome: 'remoteHeaderFilter', variavel: 'valoresFunil' });
+  }
   else p.push({ nome: 'dataSource', variavel: 'faturas' });
   p.push({ nome: 'columns', variavel: 'colunas' });
   if (o.summary) p.push({ nome: 'summary', variavel: 'totais' });
@@ -72,6 +77,8 @@ function propriedades(o: Opcoes): Prop[] {
   if (o.rowClass) p.push({ nome: 'rowClass', variavel: 'classeLinha' });
   if (o.rowStyle) p.push({ nome: 'rowStyle', variavel: 'estiloLinha' });
   if (o.stateStoring) p.push({ nome: 'stateStoring', variavel: 'estadoSalvo' });
+  if (o.mensagens) p.push({ nome: 'messages', variavel: 'textos' });
+  if (o.cellRender) p.push({ nome: 'cellStyles', variavel: 'cssCelulas' });
   if (!o.showRowLines) p.push({ nome: 'showRowLines', variavel: 'false' });
   return p;
 }
@@ -96,13 +103,14 @@ function colunasCodigo(o: Opcoes, ts: boolean, ind = '  '): string {
   linhas.push(`{ dataField: 'cliente.nome', caption: 'Cliente', minWidth: 180 }`);
   linhas.push(`{ dataField: 'cliente.uf', caption: 'UF', width: 70, alignment: 'center'${g('cliente.uf')} }`);
   linhas.push(`{ dataField: 'vendedor', caption: 'Vendedor'${g('vendedor')} }`);
-  linhas.push(`{ dataField: 'status', caption: 'Status'${o.cellTemplates ? ", cellTemplate: 'status'" : ''}${g('status')} }`);
-  linhas.push(`{ dataField: 'forma', caption: 'Forma de pgto' }`);
+  const filtroStatus = o.filtrosIniciais ? ", filterValues: ['Cancelado'], filterType: 'exclude'" : '';
+  linhas.push(`{ dataField: 'status', caption: 'Status'${o.cellTemplates ? ", cellTemplate: 'status'" : ''}${filtroStatus}${g('status')} }`);
+  linhas.push(`{ dataField: 'forma', caption: 'Forma de pgto'${o.cellRender ? ', cellRender: renderForma' : ''} }`);
   linhas.push(`{ dataField: 'emissao', caption: 'Emissão', format: 'date'${o.colunaOpcional ? ', visible: false' : ''} }`);
   linhas.push(`{ dataField: 'vencimento', caption: 'Vencimento', format: 'date', sortOrder: 'asc' }`);
   const valorTipo = ts ? '(v: number)' : '(v)';
   linhas.push(
-    `{ dataField: 'valor', caption: 'Valor', format: 'currency'${o.cssClassCelula ? `, cssClass: ${valorTipo} => (v < 0 ? 'negativo' : '')` : ''} }`,
+    `{ dataField: 'valor', caption: 'Valor', format: 'currency'${o.filtrosIniciais ? ", filterValue: 1000, selectedFilterOperation: '>='" : ''}${o.cssClassCelula ? `, cssClass: ${valorTipo} => (v < 0 ? 'negativo' : '')` : ''} }`,
   );
   linhas.push(`{ dataField: 'desconto', caption: 'Desconto', format: 'percent' }`);
   linhas.push(`{ dataField: 'recebido', caption: 'Recebido', ${o.cellTemplates ? "cellTemplate: 'progresso'" : "format: 'percent'"} }`);
@@ -120,6 +128,20 @@ function declaracoes(o: Opcoes, ts: boolean, kwBase = 'const'): string[] {
   const kw = kwBase ? kwBase + ' ' : '';
   const t = (tipo: string) => (ts ? `: ${tipo}` : '');
   const out: string[] = [];
+  if (o.cellRender) {
+    const tv = ts ? '(valor: string)' : '(valor)';
+    out.push(`// cellRender: a célula é montada por uma função (texto, HTMLElement ou template do Lit)
+${kw}renderForma = ${tv} => {
+  const el = document.createElement('span');
+  el.className = 'forma ' + valor.toLowerCase();
+  el.textContent = valor;
+  return el;
+};
+// O conteúdo do cellRender fica no Shadow DOM: o CSS dele vai em cellStyles
+${kw}cssCelulas = \`.forma { padding: 1px 8px; border-radius: 6px; font-size: 12px; }
+.forma.pix { background: #e6fcf5; color: #087f5b; }
+.forma.boleto { background: #fff4e6; color: #d9480f; }\`;`);
+  }
   out.push(`${kw}colunas${t('ColumnDef<Fatura>[]')} = ${colunasCodigo(o, ts)};`);
   if (o.summary) {
     out.push(
@@ -139,6 +161,15 @@ function declaracoes(o: Opcoes, ts: boolean, kwBase = 'const'): string[] {
     );
   }
   if (o.stateStoring) out.push(`${kw}estadoSalvo = { storageKey: 'faturas-grid' };`);
+  if (o.mensagens) {
+    out.push(
+      `${kw}textos${t('Partial<DataGridMessages>')} = {
+  searchPlaceholder: 'Buscar fatura, cliente, vendedor…',
+  clearFilters: 'Limpar tudo',
+  noData: 'Nenhuma fatura encontrada',
+};`,
+    );
+  }
   if (o.fonte === 'remoto') out.push(remoteCodigo(ts, kw));
   return out;
 }
@@ -154,7 +185,11 @@ ${kw}carregar = async ${tipo} => {
     signal: opcoes.signal,
   });
   return resp.json(); // { data: [...], totalCount: 1234, summary?: [...] }
-};`;
+};
+
+// Valores distintos de uma coluna para o funil do cabeçalho
+${kw}valoresFunil = async ${ts ? '(campo: string): Promise<any[]>' : '(campo)'} =>
+  (await fetch('/api/faturas/valores?campo=' + campo)).json();`;
 }
 
 /** CSS global (fora do Shadow DOM) para as regras e a cor. */
@@ -204,6 +239,7 @@ function angular(o: Opcoes): ArquivoCodigo[] {
   const tipos = ['BmDataGrid', 'ColumnDef', 'SummaryItem'];
   if (pagingDiferente(o)) tipos.push('PagingOptions');
   if (o.fonte === 'remoto') tipos.push('RemoteLoadOptions', 'RemoteLoadResult');
+  if (o.mensagens) tipos.push('DataGridMessages');
   const imports = [
     `import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, ViewChild } from '@angular/core';`,
     `import '@brunomouradev/data-grid'; // registra <bm-data-grid>`,
@@ -278,6 +314,7 @@ function react(o: Opcoes): ArquivoCodigo[] {
   const tipos = ['BmDataGrid', 'ColumnDef', 'SummaryItem'];
   if (pagingDiferente(o)) tipos.push('PagingOptions');
   if (o.fonte === 'remoto') tipos.push('RemoteLoadOptions', 'RemoteLoadResult');
+  if (o.mensagens) tipos.push('DataGridMessages');
   const atribs = atributos(o).map((a) => (a.includes('=') ? a : `${a}=""`));
   const sets = props
     .filter((p) => p.nome !== 'dataSource')
@@ -350,6 +387,7 @@ function vue(o: Opcoes): ArquivoCodigo[] {
   const tipos = ['ColumnDef', 'SummaryItem'];
   if (pagingDiferente(o)) tipos.push('PagingOptions');
   if (o.fonte === 'remoto') tipos.push('RemoteLoadOptions', 'RemoteLoadResult');
+  if (o.mensagens) tipos.push('DataGridMessages');
   const codigo = `<template>
   <bm-data-grid
 ${corpo.map((l) => '    ' + l).join('\n')}

@@ -162,6 +162,10 @@
         <span>Nome do arquivo <code>export-file-name</code></span>
         <input type="text" [value]="o().exportFileName" (input)="set('exportFileName', valor($event))" />
       </label>
+      <label class="campo" [class.off]="!o().showExportButton">
+        <span>Aba do Excel <code>export-sheet-name</code></span>
+        <input type="text" [value]="o().exportSheetName" (input)="set('exportSheetName', valor($event))" />
+      </label>
     </section>
 
     <section>
@@ -169,6 +173,14 @@
       <label class="sw">
         <input type="checkbox" [checked]="o().stateStoring" (change)="alternar('stateStoring')" />
         <span class="trilho"></span><span class="rot">Lembrar estado (localStorage)</span><code>stateStoring</code>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().mensagens" (change)="alternar('mensagens')" />
+        <span class="trilho"></span><span class="rot">Textos personalizados</span><code>messages</code>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().loading" (change)="alternar('loading')" />
+        <span class="trilho"></span><span class="rot">Indicador de carregando</span><code>loading</code>
       </label>
       <label class="campo">
         <span>Texto sem dados <code>no-data-text</code></span>
@@ -199,6 +211,10 @@
             [style.--bm-color-primary]="o().corPrimaria || null"
             [dataSource]="dados()"
             [remoteData]="o().fonte === 'remoto' ? carregarRemoto : undefined"
+            [remoteHeaderFilter]="o().fonte === 'remoto' ? funilRemoto : undefined"
+            [loading]="o().loading"
+            [messages]="mensagens()"
+            [cellStyles]="cellStyles()"
             [columns]="colunas()"
             [selectionMode]="o().selectionMode"
             [showFilterRow]="o().showFilterRow"
@@ -225,6 +241,7 @@
             [stateStoring]="estadoSalvo()"
             [exportFormats]="exportFormats()"
             [exportFileName]="o().exportFileName || 'dados'"
+            [exportSheetName]="o().exportSheetName || 'Dados'"
             [noDataText]="o().noDataText || undefined"
             (row-click)="ev('row-click', $event)"
             (row-dblclick)="ev('row-dblclick', $event); abrir($any($event).detail.data)"
@@ -277,6 +294,7 @@
           }
         </div>
         <pre><code [innerHTML]="codigoHtml()"></code></pre>
+        <p class="dica">Teclado: setas navegam, Enter dispara <code>row-enter</code>, espaço seleciona e Ctrl+C copia as linhas selecionadas (<code>copy-rows</code>).</p>
         <p class="dica">O código acompanha as opções marcadas: só entra o que é diferente do padrão.</p>
       </section>
 
