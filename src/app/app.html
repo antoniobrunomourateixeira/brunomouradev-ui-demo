@@ -1,0 +1,307 @@
+<header class="topo">
+  <div class="marca">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 4h18v4H3zm0 6h5v4H3zm7 0h11v4H10zm-7 6h5v4H3zm7 0h11v4H10z"/></svg>
+    </span>
+    <div>
+      <h1>DataGrid</h1>
+      <p>&#64;brunomouradev/data-grid 0.1.4 · protótipo em Angular 20</p>
+    </div>
+  </div>
+  <button class="btn-ghost" (click)="restaurar()">Restaurar padrão</button>
+</header>
+
+<div class="layout">
+  <!-- ═════════════ Painel de opções ═════════════ -->
+  <aside class="painel">
+    <section>
+      <h2>Fonte de dados</h2>
+      <div class="seg">
+        <button [class.on]="o().fonte === 'local'" (click)="set('fonte', 'local')">500 linhas</button>
+        <button [class.on]="o().fonte === 'grande'" (click)="set('fonte', 'grande')">100 mil</button>
+        <button [class.on]="o().fonte === 'remoto'" (click)="set('fonte', 'remoto')">Servidor</button>
+      </div>
+      <p class="dica">
+        @switch (o().fonte) {
+          @case ('local') { <code>dataSource</code> com 500 faturas. }
+          @case ('grande') { 100.000 linhas com rolagem virtual. }
+          @case ('remoto') { <code>remoteData</code>: a grid pede cada página (servidor simulado, 350 ms). }
+        }
+      </p>
+    </section>
+
+    <section>
+      <h2>Aparência</h2>
+      <label class="campo">
+        <span>Tema <code>theme</code></span>
+        <select [value]="o().theme" (change)="set('theme', $any(valor($event)))">
+          @for (t of temas; track t) { <option [value]="t">{{ t }}</option> }
+        </select>
+      </label>
+      <div class="campo">
+        <span>Modo <code>appearance</code></span>
+        <div class="seg">
+          <button [class.on]="o().appearance === 'light'" (click)="set('appearance', 'light')">Claro</button>
+          <button [class.on]="o().appearance === 'dark'" (click)="set('appearance', 'dark')">Escuro</button>
+          <button [class.on]="o().appearance === 'auto'" (click)="set('appearance', 'auto')">Auto</button>
+        </div>
+      </div>
+      <div class="campo">
+        <span>Densidade <code>density</code></span>
+        <div class="seg">
+          <button [class.on]="o().density === 'compact'" (click)="set('density', 'compact')">Compacta</button>
+          <button [class.on]="o().density === 'standard'" (click)="set('density', 'standard')">Padrão</button>
+          <button [class.on]="o().density === 'comfortable'" (click)="set('density', 'comfortable')">Confortável</button>
+        </div>
+      </div>
+      <div class="campo">
+        <span>Idioma <code>locale</code></span>
+        <div class="seg">
+          <button [class.on]="o().locale === 'pt-BR'" (click)="set('locale', 'pt-BR')">pt-BR</button>
+          <button [class.on]="o().locale === 'en-US'" (click)="set('locale', 'en-US')">en-US</button>
+        </div>
+      </div>
+      <div class="campo linha">
+        <span>Cor de destaque <code>--bm-color-primary</code></span>
+        <span class="cor">
+          <input type="color" [value]="o().corPrimaria || '#2563eb'" (input)="set('corPrimaria', valor($event))" />
+          @if (o().corPrimaria) { <button class="link" (click)="set('corPrimaria', '')">limpar</button> }
+        </span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Seleção</h2>
+      <div class="campo">
+        <span><code>selection-mode</code></span>
+        <div class="seg">
+          <button [class.on]="o().selectionMode === 'none'" (click)="set('selectionMode', 'none')">Nenhuma</button>
+          <button [class.on]="o().selectionMode === 'single'" (click)="set('selectionMode', 'single')">Única</button>
+          <button [class.on]="o().selectionMode === 'multiple'" (click)="set('selectionMode', 'multiple')">Múltipla</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Paginação e rolagem</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().virtualScrolling" (change)="alternar('virtualScrolling')" />
+        <span class="trilho"></span><span class="rot">Rolagem virtual</span><code>virtual-scrolling</code>
+      </label>
+      <label class="sw" [class.off]="o().virtualScrolling">
+        <input type="checkbox" [checked]="o().pagingEnabled" (change)="alternar('pagingEnabled')" [disabled]="o().virtualScrolling" />
+        <span class="trilho"></span><span class="rot">Paginação</span><code>paging.enabled</code>
+      </label>
+      <label class="campo linha" [class.off]="o().virtualScrolling || !o().pagingEnabled">
+        <span>Itens por página <code>pageSize</code></span>
+        <select [value]="'' + o().pageSize" (change)="set('pageSize', +valor($event))">
+          @for (n of [10, 20, 50, 100]; track n) { <option [value]="'' + n">{{ n }}</option> }
+        </select>
+      </label>
+      <label class="sw" [class.off]="o().virtualScrolling || !o().pagingEnabled">
+        <input type="checkbox" [checked]="o().showPageSizeSelector" (change)="alternar('showPageSizeSelector')" />
+        <span class="trilho"></span><span class="rot">Seletor de tamanho</span><code>showPageSizeSelector</code>
+      </label>
+      <label class="sw" [class.off]="o().virtualScrolling || !o().pagingEnabled">
+        <input type="checkbox" [checked]="o().showInfo" (change)="alternar('showInfo')" />
+        <span class="trilho"></span><span class="rot">Info da página</span><code>showInfo</code>
+      </label>
+    </section>
+
+    @for (grupo of grupos; track grupo.titulo) {
+      <section>
+        <h2>{{ grupo.titulo }}</h2>
+        @for (t of grupo.itens; track t.k) {
+          <label class="sw">
+            <input type="checkbox" [checked]="o()[t.k]" (change)="alternar(t.k)" />
+            <span class="trilho"></span><span class="rot">{{ t.rotulo }}</span><code>{{ t.api }}</code>
+          </label>
+        }
+      </section>
+    }
+
+    <section>
+      <h2>Agrupamento</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().showGroupPanel" (change)="alternar('showGroupPanel')" />
+        <span class="trilho"></span><span class="rot">Painel de grupos</span><code>show-group-panel</code>
+      </label>
+      <label class="campo linha">
+        <span>Agrupar ao abrir <code>groupIndex</code></span>
+        <select [value]="o().agruparPor" (change)="set('agruparPor', $any(valor($event)))">
+          <option value="">—</option>
+          <option value="cliente.uf">UF</option>
+          <option value="status">Status</option>
+          <option value="vendedor">Vendedor</option>
+        </select>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().autoExpandAll" (change)="alternar('autoExpandAll')" />
+        <span class="trilho"></span><span class="rot">Grupos expandidos</span><code>auto-expand-all</code>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().groupSummary" (change)="alternar('groupSummary')" />
+        <span class="trilho"></span><span class="rot">Totais por grupo</span><code>groupSummary</code>
+      </label>
+    </section>
+
+    <section>
+      <h2>Exportação</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().showExportButton" (change)="alternar('showExportButton')" />
+        <span class="trilho"></span><span class="rot">Botão Exportar</span><code>show-export-button</code>
+      </label>
+      <div class="campo linha" [class.off]="!o().showExportButton">
+        <span>Formatos <code>export-formats</code></span>
+        <span class="checks">
+          <label><input type="checkbox" [checked]="o().exportXlsx" (change)="alternar('exportXlsx')" /> xlsx</label>
+          <label><input type="checkbox" [checked]="o().exportCsv" (change)="alternar('exportCsv')" /> csv</label>
+        </span>
+      </div>
+      <label class="campo" [class.off]="!o().showExportButton">
+        <span>Nome do arquivo <code>export-file-name</code></span>
+        <input type="text" [value]="o().exportFileName" (input)="set('exportFileName', valor($event))" />
+      </label>
+    </section>
+
+    <section>
+      <h2>Estado e textos</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().stateStoring" (change)="alternar('stateStoring')" />
+        <span class="trilho"></span><span class="rot">Lembrar estado (localStorage)</span><code>stateStoring</code>
+      </label>
+      <label class="campo">
+        <span>Texto sem dados <code>no-data-text</code></span>
+        <input type="text" placeholder="Sem dados" [value]="o().noDataText" (input)="set('noDataText', valor($event))" />
+      </label>
+    </section>
+  </aside>
+
+  <!-- ═════════════ Área principal ═════════════ -->
+  <main class="principal">
+    <section class="cartao">
+      <div class="cartao-topo">
+        <div>
+          <h2>Faturas</h2>
+          <p>{{ total().toLocaleString('pt-BR') }} itens · {{ selecionadas() }} selecionada(s) · duplo clique abre a fatura</p>
+        </div>
+      </div>
+
+      <div class="palco" [class.escuro]="o().appearance === 'dark'">
+        @for (k of [chaveGrid()]; track k) {
+          <bm-data-grid
+            #grid
+            key-expr="id"
+            [theme]="o().theme"
+            [appearance]="o().appearance"
+            [density]="o().density"
+            [locale]="o().locale"
+            [style.--bm-color-primary]="o().corPrimaria || null"
+            [dataSource]="dados()"
+            [remoteData]="o().fonte === 'remoto' ? carregarRemoto : undefined"
+            [columns]="colunas()"
+            [selectionMode]="o().selectionMode"
+            [showFilterRow]="o().showFilterRow"
+            [showHeaderFilter]="o().showHeaderFilter"
+            [showSearchPanel]="o().showSearchPanel"
+            [showFilterPanel]="o().showFilterPanel"
+            [showGroupPanel]="o().showGroupPanel"
+            [showExportButton]="o().showExportButton"
+            [columnChooserEnabled]="o().columnChooserEnabled"
+            [allowColumnReordering]="o().allowColumnReordering"
+            [allowColumnResizing]="o().allowColumnResizing"
+            [columnAutoWidth]="o().columnAutoWidth"
+            [showRowLines]="o().showRowLines"
+            [showColumnLines]="o().showColumnLines"
+            [rowAlternationEnabled]="o().rowAlternationEnabled"
+            [hoverStateDisabled]="o().hoverStateDisabled"
+            [virtualScrolling]="o().virtualScrolling"
+            [paging]="paging()"
+            [summary]="totais()"
+            [groupSummary]="totaisGrupo()"
+            [autoExpandAll]="o().autoExpandAll"
+            [rowClass]="classeLinha()"
+            [rowStyle]="estiloLinha()"
+            [stateStoring]="estadoSalvo()"
+            [exportFormats]="exportFormats()"
+            [exportFileName]="o().exportFileName || 'dados'"
+            [noDataText]="o().noDataText || undefined"
+            (row-click)="ev('row-click', $event)"
+            (row-dblclick)="ev('row-dblclick', $event); abrir($any($event).detail.data)"
+            (row-enter)="ev('row-enter', $event)"
+            (selection-changed)="ev('selection-changed', $event)"
+            (state-changed)="ev('state-changed', $event)"
+            (content-ready)="ev('content-ready', $event)"
+            (column-layout-changed)="ev('column-layout-changed', $event)"
+            (grouping-changed)="ev('grouping-changed', $event)"
+            (exporting)="ev('exporting', $event)"
+            (copy-rows)="ev('copy-rows', $event)"
+            (load-error)="ev('load-error', $event)"
+          >
+            <ng-template bmCellTemplate="status" let-valor="valor">
+              <span class="badge" [class]="'badge ' + valor.toLowerCase()">{{ valor }}</span>
+            </ng-template>
+            <ng-template bmCellTemplate="progresso" let-valor="valor">
+              <span class="barra" [title]="valor + '%'"><span [style.width.%]="valor"></span></span>
+            </ng-template>
+            <ng-template bmCellTemplate="acoes" let-linha>
+              <button class="btn-celula" (click)="abrir(linha); $event.stopPropagation()">Abrir</button>
+            </ng-template>
+          </bm-data-grid>
+        }
+      </div>
+
+      <div class="metodos">
+        <span class="metodos-rot">Métodos</span>
+        @for (m of metodos; track m.m) {
+          <button class="chip" (click)="executar(m.m)" [title]="m.m + '()'">{{ m.rotulo }}</button>
+        }
+      </div>
+    </section>
+
+    <div class="inferior">
+      <!-- Código -->
+      <section class="cartao codigo">
+        <div class="codigo-topo">
+          <div class="abas">
+            @for (l of linguagens; track l.id) {
+              <button [class.on]="lang() === l.id" (click)="trocarLang(l.id)">{{ l.rotulo }}</button>
+            }
+          </div>
+          <button class="btn-ghost pequeno" (click)="copiar()">{{ copiado() ? 'Copiado ✓' : 'Copiar' }}</button>
+        </div>
+        <div class="instalar"><span>Instalar</span><code>{{ instalacao() }}</code></div>
+        <div class="arquivos">
+          @for (a of arquivos(); track a.nome; let i = $index) {
+            <button [class.on]="arquivo().nome === a.nome" (click)="arquivoIdx.set(i)">{{ a.nome }}</button>
+          }
+        </div>
+        <pre><code [innerHTML]="codigoHtml()"></code></pre>
+        <p class="dica">O código acompanha as opções marcadas: só entra o que é diferente do padrão.</p>
+      </section>
+
+      <!-- Eventos -->
+      <section class="cartao eventos">
+        <div class="codigo-topo">
+          <h3>Eventos</h3>
+          <button class="btn-ghost pequeno" (click)="eventos.set([])">Limpar</button>
+        </div>
+        <ol>
+          @for (e of eventos(); track $index) {
+            <li>
+              <span class="hora">{{ e.hora }}</span>
+              <span class="nome">{{ e.nome }}</span>
+              <span class="det">{{ e.detalhe }}</span>
+            </li>
+          } @empty {
+            <li class="vazio">Interaja com a grid para ver os eventos aqui.</li>
+          }
+        </ol>
+      </section>
+    </div>
+  </main>
+</div>
+
+@if (toast()) {
+  <div class="toast" role="status">{{ toast() }}</div>
+}

@@ -1,0 +1,30 @@
+:root {
+  --fundo: #f6f7f9;
+  --fundo-2: #f0f2f5;
+  --superficie: #ffffff;
+  --borda: #e6e8ec;
+  --texto: #1d2433;
+  --suave: #667085;
+  --acento: #2563eb;
+  --acento-claro: rgba(37, 99, 235, 0.15);
+  --mono: ui-monospace, 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Regras de linha e célula da grid: o Shadow DOM só deixa entrar estilo pelos "parts".
+ * Por isso este CSS fica no arquivo global, e não no app.scss.
+ */
+bm-data-grid::part(atrasado) { --bm-row-bg: #fff1f0; color: #c92a2a; }
+bm-data-grid::part(negativo) { color: #c92a2a; font-weight: 600; }
