@@ -6,6 +6,8 @@ Protótipo em **Angular 20** do [`@brunomouradev/data-grid`](https://www.npmjs.c
 Todas as opções da grid ficam num painel lateral, os métodos em botões e os eventos num log ao vivo.
 O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme as opções marcadas.
 
+**▶ Ver rodando:** https://antoniobrunomourateixeira.github.io/datagrid-prototipo/
+
 ![Visão geral](docs/prints/01-visao-geral.png)
 
 ## Prints
@@ -69,5 +71,6 @@ O modo "Servidor" simula um back-end com o motor da própria lib (`@brunomourade
 
 ## Links
 
+- Online (GitHub Pages): https://antoniobrunomourateixeira.github.io/datagrid-prototipo/
 - Biblioteca: https://github.com/antoniobrunomourateixeira/brunomouradev-ui
 - npm: https://www.npmjs.com/package/@brunomouradev/data-grid
