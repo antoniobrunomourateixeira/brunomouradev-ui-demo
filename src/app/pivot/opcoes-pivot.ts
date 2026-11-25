@@ -1,7 +1,9 @@
 import type { Appearance, Density, SummaryDisplayMode, SummaryType, ThemeName } from '@brunomouradev/pivot-grid';
+import { BASES, IdBase } from './bases';
 
 /** Tudo o que o painel de opções do PivotGrid controla. */
 export interface OpcoesPivot {
+  base: IdBase;
   fonte: 'local' | 'grande';
 
   // Aparência
@@ -12,14 +14,16 @@ export interface OpcoesPivot {
   corPrimaria: string;
 
   // Layout dos campos
-  linhas: 'regiao-uf' | 'categoria-produto' | 'canal-vendedor' | 'uf-cidade';
-  colunas: 'ano-trimestre' | 'ano-mes' | 'ano' | 'canal' | 'nenhuma';
+  /** id de um preset da base (bases.ts). */
+  linhas: string;
+  colunas: string;
   expandido: boolean;
 
   // Valores
-  medida: 'faturamento' | 'lucro' | 'quantidade';
+  medida: string;
   summaryType: SummaryType;
-  segundoValor: 'nenhum' | 'quantidade' | 'lucro' | 'ticket';
+  /** 'nenhum' ou o id de um segundo valor da base. */
+  segundoValor: string;
   summaryDisplayMode: SummaryDisplayMode;
   conditionalFormat: 'nenhum' | 'colorScale' | 'dataBar' | 'regra';
 
@@ -55,6 +59,7 @@ export interface OpcoesPivot {
 }
 
 export const PIVOT_PADRAO: OpcoesPivot = {
+  base: 'vendas',
   fonte: 'local',
   theme: 'default',
   appearance: 'light',
@@ -102,3 +107,22 @@ export const MODOS_EXIBICAO: { id: SummaryDisplayMode; rotulo: string }[] = [
   { id: 'percentDifferenceFromPrevious', rotulo: '% de diferença da anterior' },
   { id: 'runningTotal', rotulo: 'Acumulado' },
 ];
+
+/** Opções ao trocar de base: o que depende dos campos volta ao padrão daquela base. */
+export function opcoesDaBase(o: OpcoesPivot, base: IdBase): OpcoesPivot {
+  const p = BASES[base].padrao;
+  return {
+    ...o,
+    base,
+    linhas: p.linhas,
+    colunas: p.colunas,
+    medida: p.medida,
+    conditionalFormat: p.conditionalFormat,
+    segundoValor: 'nenhum',
+    summaryType: 'sum',
+    summaryDisplayMode: 'absolute',
+    topN: 0,
+    filtroInicial: false,
+    exportFileName: base === 'vendas' ? 'vendas' : 'carteira',
+  };
+}

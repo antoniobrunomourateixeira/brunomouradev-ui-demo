@@ -7,12 +7,17 @@
     </div>
 
     <section>
-      <h2>Fonte de dados</h2>
+      <h2>Base de dados</h2>
       <div class="seg">
-        <button [class.on]="o().fonte === 'local'" (click)="set('fonte', 'local')">5 mil vendas</button>
-        <button [class.on]="o().fonte === 'grande'" (click)="set('fonte', 'grande')">50 mil</button>
+        @for (b of bases; track b.id) {
+          <button [class.on]="o().base === b.id" (click)="trocarBase(b.id)">{{ b.rotulo }}</button>
+        }
       </div>
-      <p class="dica">Vendas de uma rede de eletrônicos de jan/2024 a out/2026: 18 cidades, 4 canais, 16 produtos com preço e custo, Black Friday, Natal, crescimento ano a ano e devoluções.</p>
+      <div class="seg" style="margin-top: 8px">
+        <button [class.on]="o().fonte === 'local'" (click)="set('fonte', 'local')">{{ base().tamanhos[0].toLocaleString('pt-BR') }} {{ base().registros }}</button>
+        <button [class.on]="o().fonte === 'grande'" (click)="set('fonte', 'grande')">{{ base().tamanhos[1].toLocaleString('pt-BR') }}</button>
+      </div>
+      <p class="dica">{{ base().descricao }}</p>
     </section>
 
     <section>
@@ -60,20 +65,13 @@
       <label class="campo">
         <span>Linhas <code>area: 'row'</code></span>
         <select [value]="o().linhas" (change)="set('linhas', $any(valor($event)))">
-          <option value="regiao-uf">Região › UF</option>
-          <option value="categoria-produto">Categoria › Produto</option>
-          <option value="canal-vendedor">Canal › Vendedor</option>
-          <option value="uf-cidade">UF › Cidade</option>
+          @for (p of base().linhas; track p.id) { <option [value]="p.id">{{ p.rotulo }}</option> }
         </select>
       </label>
       <label class="campo">
         <span>Colunas <code>area: 'column'</code></span>
         <select [value]="o().colunas" (change)="set('colunas', $any(valor($event)))">
-          <option value="ano-trimestre">Ano › Trimestre</option>
-          <option value="ano-mes">Ano › Mês</option>
-          <option value="ano">Ano</option>
-          <option value="canal">Canal</option>
-          <option value="nenhuma">Nenhuma</option>
+          @for (p of base().colunas; track p.id) { <option [value]="p.id">{{ p.rotulo }}</option> }
         </select>
       </label>
       <label class="sw">
@@ -88,9 +86,7 @@
       <label class="campo">
         <span>Medida <code>area: 'data'</code></span>
         <select [value]="o().medida" (change)="set('medida', $any(valor($event)))">
-          <option value="faturamento">Faturamento (R$)</option>
-          <option value="lucro">Lucro (R$)</option>
-          <option value="quantidade">Unidades vendidas</option>
+          @for (m of base().medidas; track m.id) { <option [value]="m.id">{{ m.rotulo }}</option> }
         </select>
       </label>
       <div class="campo">
@@ -120,9 +116,7 @@
         <span>Segundo valor <code>area: 'data'</code></span>
         <select [value]="o().segundoValor" (change)="set('segundoValor', $any(valor($event)))">
           <option value="nenhum">Nenhum</option>
-          <option value="quantidade">Unidades</option>
-          <option value="lucro">Lucro</option>
-          <option value="ticket">Ticket médio (avg)</option>
+          @for (m of base().segundos; track m.id) { <option [value]="m.id">{{ m.rotulo }}</option> }
         </select>
       </label>
     </section>
@@ -148,7 +142,7 @@
       </label>
       <label class="sw">
         <input type="checkbox" [checked]="o().filtroInicial" (change)="alternar('filtroInicial')" />
-        <span class="trilho"></span><span class="rot">Só vendas (sem devoluções)</span><code>filterValues / filterType</code>
+        <span class="trilho"></span><span class="rot">{{ base().filtro.rotulo }}</span><code>filterValues / filterType</code>
       </label>
     </section>
 
@@ -214,8 +208,8 @@
     <section class="cartao">
       <div class="cartao-topo">
         <div>
-          <h2>Vendas</h2>
-          <p>{{ dados().length.toLocaleString('pt-BR') }} vendas · arraste os campos entre as áreas · duplo clique numa célula mostra as vendas dela</p>
+          <h2>{{ base().titulo }}</h2>
+          <p>{{ dados().length.toLocaleString('pt-BR') }} {{ base().registros }} · arraste os campos entre as áreas · duplo clique numa célula mostra os {{ base().registros }} dela</p>
         </div>
       </div>
 
@@ -253,7 +247,7 @@
       <div class="metodos">
         <span class="metodos-rot">Métodos</span>
         @for (m of metodos; track m.m) {
-          <button class="chip" (click)="executar(m.m)">{{ m.rotulo }}</button>
+          <button class="chip" (click)="executar(m.m)">{{ m.m === 'moveField' ? 'Mover "' + base().campoMover.rotulo + '" para colunas' : m.rotulo }}</button>
         }
       </div>
     </section>
@@ -263,22 +257,22 @@
         <div class="cartao-topo">
           <div>
             <h2>Drill down: {{ d.titulo }}</h2>
-            <p>{{ d.registros.length }} vendas por trás da célula · <code>cell-dblclick</code> → <code>detail.records</code>, mostradas numa <code>&lt;bm-data-grid&gt;</code></p>
+            <p>{{ d.registros.length }} {{ base().registros }} por trás da célula · <code>cell-dblclick</code> → <code>detail.records</code>, mostradas numa <code>&lt;bm-data-grid&gt;</code></p>
           </div>
           <button class="btn-ghost pequeno" (click)="detalhe.set(null)">Fechar</button>
         </div>
         <bm-data-grid
           class="detalhe"
-          key-expr="pedido"
+          [keyExpr]="base().detalhe.chave"
           show-search-panel
           column-auto-width
           [theme]="o().theme"
           [appearance]="o().appearance"
           [density]="o().density"
           [locale]="o().locale"
-          [columns]="colunasDetalhe"
+          [columns]="base().detalhe.colunas"
           [dataSource]="d.registros"
-          [summary]="totaisDetalhe"
+          [summary]="base().detalhe.totais"
           [paging]="{ pageSize: 10 }"
         ></bm-data-grid>
       </section>

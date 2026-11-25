@@ -1,126 +1,83 @@
 import type { PivotCellInfo, PivotField } from '@brunomouradev/pivot-grid';
+import { BASES, Medida } from './bases';
+import { ComCodigo, comCodigo } from './codigo-fn';
 import { OpcoesPivot } from './opcoes-pivot';
-import type { Venda } from './vendas';
 
 /**
- * Monta os campos do PivotGrid a partir das opções. O mesmo resultado serve para a tela
- * e (serializado por `camposCodigo`) para o código de exemplo.
+ * Monta os campos do PivotGrid a partir das opções e da base escolhida. O mesmo resultado
+ * serve para a tela e (serializado por `camposCodigo`) para o código de exemplo.
  */
 
-/** Função que também sabe se escrever como código no exemplo. */
-type ComCodigo<F> = F & { __codigo: string };
-function comCodigo<F extends Function>(fn: F, codigo: string): ComCodigo<F> {
-  return Object.assign(fn, { __codigo: codigo });
-}
-
-/** Meta por célula de cada medida (usada na regra de cor própria). */
-const METAS: Record<OpcoesPivot['medida'], number> = { faturamento: 400_000, lucro: 80_000, quantidade: 300 };
-
-/** Regra própria: prejuízo/devolução em vermelho, acima da meta em verde. */
-function regraCor(meta: number) {
+/** Regra própria de cor: negativo em vermelho e a meta destacada (verde se é bom, vermelho se é ruim). */
+function regraCor(m: Medida) {
+  const destaque = m.ruimAcima
+    ? { color: '#c92a2a', 'font-weight': '600', background: '#fff5f5' }
+    : { color: '#1b7a43', 'font-weight': '600', background: '#ebfbee' };
+  const css = `{ color: '${destaque.color}', 'font-weight': '600', background: '${destaque.background}' }`;
   return comCodigo(
     (valor: number | null, info: PivotCellInfo) =>
-      info.isTotal || valor == null ? null
-        : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' }
-        : valor >= meta ? { color: '#1b7a43', 'font-weight': '600', background: '#ebfbee' }
-        : null,
+      info.isTotal || valor == null ? null : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' } : valor >= m.meta ? destaque : null,
     `(valor, info) =>
       info.isTotal || valor == null ? null
-        : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' } // prejuízo
-        : valor >= ${meta} ? { color: '#1b7a43', 'font-weight': '600', background: '#ebfbee' } // bateu a meta
+        : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' }
+        : valor >= ${m.meta} ? ${css} // ${m.ruimAcima ? 'acima do limite' : 'bateu a meta'}
         : null`,
   );
 }
 
-const CAMPO = {
-  regiao: { name: 'regiao', dataField: 'regiao', caption: 'Região' },
-  uf: { name: 'uf', dataField: 'uf', caption: 'UF' },
-  cidade: { name: 'cidade', dataField: 'cidade', caption: 'Cidade' },
-  categoria: { name: 'categoria', dataField: 'categoria', caption: 'Categoria' },
-  produto: { name: 'produto', dataField: 'produto', caption: 'Produto' },
-  canal: { name: 'canal', dataField: 'canal', caption: 'Canal' },
-  vendedor: { name: 'vendedor', dataField: 'vendedor', caption: 'Vendedor' },
-  cliente: { name: 'cliente', dataField: 'cliente', caption: 'Tipo de cliente' },
-  tipo: { name: 'tipo', dataField: 'tipo', caption: 'Venda / devolução' },
-  ano: { name: 'ano', dataField: 'data', caption: 'Ano', dataType: 'date', groupInterval: 'year' },
-  trimestre: { name: 'trimestre', dataField: 'data', caption: 'Trimestre', dataType: 'date', groupInterval: 'quarter' },
-  mes: { name: 'mes', dataField: 'data', caption: 'Mês', dataType: 'date', groupInterval: 'month' },
-  diaSemana: { name: 'diaSemana', dataField: 'data', caption: 'Dia da semana', dataType: 'date', groupInterval: 'dayOfWeek' },
-} satisfies Record<string, PivotField<Venda>>;
-
-type NomeCampo = keyof typeof CAMPO;
-
-const LINHAS: Record<OpcoesPivot['linhas'], NomeCampo[]> = {
-  'regiao-uf': ['regiao', 'uf'],
-  'categoria-produto': ['categoria', 'produto'],
-  'canal-vendedor': ['canal', 'vendedor'],
-  'uf-cidade': ['uf', 'cidade'],
-};
-
-const COLUNAS: Record<OpcoesPivot['colunas'], NomeCampo[]> = {
-  'ano-trimestre': ['ano', 'trimestre'],
-  'ano-mes': ['ano', 'mes'],
-  ano: ['ano'],
-  canal: ['canal'],
-  nenhuma: [],
-};
-
-/** Campos de valor (área "data"). */
-const MEDIDAS: Record<'faturamento' | 'lucro' | 'quantidade' | 'ticket', PivotField<Venda>> = {
-  faturamento: { name: 'faturamento', dataField: 'faturamento', caption: 'Faturamento', format: 'currency' },
-  lucro: { name: 'lucro', dataField: 'lucro', caption: 'Lucro', format: 'currency' },
-  quantidade: { name: 'quantidade', dataField: 'quantidade', caption: 'Unidades', format: 'integer' },
-  ticket: { name: 'ticket', dataField: 'faturamento', caption: 'Ticket médio', summaryType: 'avg', format: 'currency' },
-};
-
-export function montarCampos(o: OpcoesPivot): PivotField<Venda>[] {
-  const campos: PivotField<Venda>[] = [];
+export function montarCampos(o: OpcoesPivot): PivotField[] {
+  const base = BASES[o.base];
+  const campos: PivotField[] = [];
   const usados = new Set<string>();
+  const medida = base.medidas.find((m) => m.id === o.medida) ?? base.medidas[0];
 
-  LINHAS[o.linhas].forEach((nome, i, arr) => {
-    const campo: PivotField<Venda> = { ...CAMPO[nome], area: 'row' };
-    if (o.expandido && i < arr.length - 1) campo.expanded = true;
-    if (i === 0 && o.ordenarPorTotal) Object.assign(campo, { sortBySummaryField: o.medida, sortOrder: 'desc' });
+  const linhas = (base.linhas.find((p) => p.id === o.linhas) ?? base.linhas[0]).campos;
+  linhas.forEach((nome, i) => {
+    const campo: PivotField = { ...base.campos[nome], area: 'row' };
+    if (o.expandido && i < linhas.length - 1) campo.expanded = true;
+    if (i === 0 && o.ordenarPorTotal) Object.assign(campo, { sortBySummaryField: medida.id, sortOrder: 'desc' });
     if (i === 0 && o.topN) campo.topN = o.topNMenores ? { count: o.topN, bottom: true } : { count: o.topN };
     campos.push(campo);
     usados.add(nome);
   });
 
-  COLUNAS[o.colunas].forEach((nome, i, arr) => {
+  const colunas = (base.colunas.find((p) => p.id === o.colunas) ?? base.colunas[0]).campos;
+  colunas.forEach((nome, i) => {
     if (usados.has(nome)) return; // já está nas linhas
-    const campo: PivotField<Venda> = { ...CAMPO[nome], area: 'column' };
-    if (o.expandido && i < arr.length - 1) campo.expanded = true;
+    const campo: PivotField = { ...base.campos[nome], area: 'column' };
+    if (o.expandido && i < colunas.length - 1) campo.expanded = true;
     campos.push(campo);
     usados.add(nome);
   });
 
   // Valor principal
-  const valor: PivotField<Venda> = {
-    ...MEDIDAS[o.medida],
-    area: 'data',
-    summaryType: o.summaryType,
-    format: o.summaryType === 'count' || o.medida === 'quantidade' ? 'integer' : 'currency',
-  };
+  const valor: PivotField = { ...medida.campo, area: 'data' };
+  if (!medida.campo.summaryType || medida.campo.summaryType === 'sum') {
+    valor.summaryType = o.summaryType;
+    if (o.summaryType === 'count') valor.format = 'integer';
+  }
   if (o.summaryDisplayMode !== 'absolute') valor.summaryDisplayMode = o.summaryDisplayMode;
-  if (o.conditionalFormat === 'colorScale') valor.conditionalFormat = { type: 'colorScale' };
+  if (o.conditionalFormat === 'colorScale') valor.conditionalFormat = { type: 'colorScale', ...(base.escala ?? {}) };
   if (o.conditionalFormat === 'dataBar') valor.conditionalFormat = { type: 'dataBar' };
-  if (o.conditionalFormat === 'regra') valor.conditionalFormat = regraCor(METAS[o.medida]) as any;
+  if (o.conditionalFormat === 'regra') valor.conditionalFormat = regraCor(medida) as any;
   campos.push(valor);
 
   // Segundo valor
-  if (o.segundoValor !== 'nenhum' && o.segundoValor !== o.medida) {
-    campos.push({ summaryType: 'sum', ...MEDIDAS[o.segundoValor], area: 'data' });
-  }
+  const segundo = base.segundos.find((s) => s.id === o.segundoValor);
+  if (segundo && segundo.id !== medida.id) campos.push({ ...segundo.campo, area: 'data' });
 
-  // Filtro: só vendas (tira as devoluções), na área de filtros
+  // Filtro inicial
   if (o.filtroInicial) {
-    campos.push({ ...CAMPO.tipo, area: 'filter', filterValues: ['Devolução'], filterType: 'exclude' });
-    usados.add('tipo');
+    const nome = base.filtro.campo;
+    const existente = campos.find((c) => c.name === nome);
+    if (existente) Object.assign(existente, { filterValues: base.filtro.valores, filterType: 'exclude' });
+    else campos.push({ ...base.campos[nome], area: 'filter', filterValues: base.filtro.valores, filterType: 'exclude' });
+    usados.add(nome);
   }
 
   // Os outros campos ficam no painel, sem área, para o usuário arrastar
-  for (const nome of Object.keys(CAMPO) as NomeCampo[]) {
-    if (!usados.has(nome)) campos.push({ ...CAMPO[nome] });
+  for (const nome of Object.keys(base.campos)) {
+    if (!usados.has(nome)) campos.push({ ...base.campos[nome] });
   }
   return campos;
 }

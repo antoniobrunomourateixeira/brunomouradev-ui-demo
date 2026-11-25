@@ -2,14 +2,14 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, Signal, computed, signal
 import '@brunomouradev/pivot-grid';
 import '@brunomouradev/data-grid';
 import type { BmPivotGrid, PivotCellEventDetail, PivotGridMessages } from '@brunomouradev/pivot-grid';
-import type { ColumnDef } from '@brunomouradev/data-grid';
 import { Evento, Linguagem, instalacao } from '../shared/codigo';
 import { PainelCodigo } from '../shared/painel-codigo';
 import { PainelEventos } from '../shared/painel-eventos';
 import { montarCampos } from './campos';
 import { gerarCodigoPivot } from './gerador-codigo-pivot';
-import { MODOS_EXIBICAO, OpcoesPivot, PIVOT_PADRAO } from './opcoes-pivot';
-import { Venda, gerarVendas } from './vendas';
+import { BASES, IdBase, LISTA_BASES } from './bases';
+import { MODOS_EXIBICAO, OpcoesPivot, PIVOT_PADRAO, opcoesDaBase } from './opcoes-pivot';
+import { FAIXAS } from './titulos';
 
 type ChaveBool = { [K in keyof OpcoesPivot]: OpcoesPivot[K] extends boolean ? K : never }[keyof OpcoesPivot];
 
@@ -19,35 +19,6 @@ interface Toggle {
   api: string;
 }
 
-const MENSAGENS: Partial<PivotGridMessages> = {
-  grandTotal: 'Total geral',
-  noData: 'Nenhuma venda no período',
-  availableFields: 'Campos disponíveis',
-};
-
-/** Colunas da DataGrid do drill down. */
-const COLUNAS_DETALHE: ColumnDef<Venda>[] = [
-  { dataField: 'pedido', caption: 'Pedido', width: 90, format: 'integer' },
-  { dataField: 'data', caption: 'Data', format: 'date', sortOrder: 'desc' },
-  { dataField: 'cidade', caption: 'Cidade' },
-  { dataField: 'uf', caption: 'UF', width: 60, alignment: 'center' },
-  { dataField: 'canal', caption: 'Canal' },
-  { dataField: 'vendedor', caption: 'Vendedor' },
-  { dataField: 'produto', caption: 'Produto' },
-  { dataField: 'quantidade', caption: 'Qtd', width: 70, format: 'integer' },
-  { dataField: 'precoUnitario', caption: 'Preço unit.', format: 'currency' },
-  { dataField: 'desconto', caption: 'Desc.', width: 80, format: { style: 'percent', maximumFractionDigits: 0 } },
-  { dataField: 'faturamento', caption: 'Faturamento', format: 'currency' },
-  { dataField: 'lucro', caption: 'Lucro', format: 'currency', cssClass: (v: number) => (v < 0 ? 'negativo' : '') },
-];
-
-/** Totais da DataGrid do drill down. */
-const TOTAIS_DETALHE = [
-  { column: 'quantidade', summaryType: 'sum' as const },
-  { column: 'faturamento', summaryType: 'sum' as const },
-  { column: 'lucro', summaryType: 'sum' as const },
-];
-
 @Component({
   selector: 'app-pivot-page',
   imports: [PainelCodigo, PainelEventos],
@@ -56,7 +27,7 @@ const TOTAIS_DETALHE = [
 })
 export class PivotPage {
   readonly o = signal<OpcoesPivot>({ ...PIVOT_PADRAO });
-  readonly pivot = viewChild<ElementRef<BmPivotGrid<Venda>>>('pivot');
+  readonly pivot = viewChild<ElementRef<BmPivotGrid<any>>>('pivot');
 
   /** Valor derivado que só muda quando as opções listadas mudam (não perde o que o usuário arrastou). */
   private derivar<T>(chaves: (keyof OpcoesPivot)[], fn: (o: OpcoesPivot) => T): Signal<T> {
@@ -68,13 +39,21 @@ export class PivotPage {
   }
 
   // ───────── Dados ─────────
-  private readonly local = gerarVendas(5_000);
-  private grande?: Venda[];
-  readonly dados = computed(() => (this.o().fonte === 'grande' ? (this.grande ??= gerarVendas(50_000, 7)) : this.local));
+  readonly bases = LISTA_BASES;
+  readonly base = computed(() => BASES[this.o().base]);
+  /** Dados gerados uma vez por base e tamanho. */
+  private readonly cache = new Map<string, any[]>();
+  readonly dados = computed(() => {
+    const b = this.base();
+    const qtd = b.tamanhos[this.o().fonte === 'grande' ? 1 : 0];
+    const chave = `${b.id}:${qtd}`;
+    if (!this.cache.has(chave)) this.cache.set(chave, b.gerar(qtd));
+    return this.cache.get(chave)!;
+  });
 
   // ───────── Configuração derivada ─────────
   readonly campos = this.derivar(
-    ['linhas', 'colunas', 'expandido', 'medida', 'summaryType', 'segundoValor', 'summaryDisplayMode', 'conditionalFormat', 'ordenarPorTotal', 'topN', 'topNMenores', 'filtroInicial'],
+    ['base', 'linhas', 'colunas', 'expandido', 'medida', 'summaryType', 'segundoValor', 'summaryDisplayMode', 'conditionalFormat', 'ordenarPorTotal', 'topN', 'topNMenores', 'filtroInicial'],
     (o) => montarCampos(o),
   );
   readonly exportFormats = this.derivar(['exportXlsx', 'exportCsv'], (o) => {
@@ -83,7 +62,9 @@ export class PivotPage {
     if (o.exportCsv) f.push('csv');
     return f.length ? f : (['xlsx'] as ('xlsx' | 'csv')[]);
   });
-  readonly mensagens = this.derivar(['mensagens'], (o): Partial<PivotGridMessages> => (o.mensagens ? MENSAGENS : {}));
+  readonly mensagens = this.derivar(['mensagens', 'base'], (o): Partial<PivotGridMessages> =>
+    o.mensagens ? { grandTotal: 'Total geral', noData: BASES[o.base].codigo.semDados, availableFields: 'Campos disponíveis' } : {},
+  );
 
   // ───────── Painel de opções ─────────
   readonly temas = ['default', 'bootstrap4', 'bootstrap5', 'tailwind', 'material'] as const;
@@ -114,6 +95,12 @@ export class PivotPage {
     this.o.update((o) => ({ ...o, [k]: v }));
   }
 
+  trocarBase(id: IdBase) {
+    if (id === this.o().base) return;
+    this.o.update((o) => opcoesDaBase(o, id));
+    this.detalhe.set(null);
+  }
+
   alternar(k: ChaveBool) {
     this.set(k, !this.o()[k]);
   }
@@ -123,7 +110,7 @@ export class PivotPage {
   }
 
   restaurar() {
-    this.o.set({ ...PIVOT_PADRAO });
+    this.o.set(opcoesDaBase({ ...PIVOT_PADRAO }, this.o().base));
     this.eventos.set([]);
     this.detalhe.set(null);
   }
@@ -134,7 +121,7 @@ export class PivotPage {
     { m: 'collapseAll', rotulo: 'Recolher tudo' },
     { m: 'sortBySummary', rotulo: 'Ordenar linhas pelo total ↓' },
     { m: 'percent', rotulo: 'Mostrar % do total geral' },
-    { m: 'moveField', rotulo: 'Mover "Canal" para colunas' },
+    { m: 'moveField', rotulo: 'Mover para colunas' },
     { m: 'drillDown', rotulo: 'drillDown() do total geral' },
     { m: 'getFields', rotulo: 'getFields()' },
     { m: 'exportToExcel', rotulo: 'Exportar Excel' },
@@ -154,7 +141,12 @@ export class PivotPage {
         p.updateField(this.o().medida, { summaryDisplayMode: 'percentOfGrandTotal' });
         detalhe = `updateField('${this.o().medida}', { summaryDisplayMode: 'percentOfGrandTotal' })`;
         break;
-      case 'moveField': p.moveField('canal', 'column'); detalhe = "moveField('canal', 'column')"; break;
+      case 'moveField': {
+        const nome = this.base().campoMover.name;
+        p.moveField(nome, 'column');
+        detalhe = `moveField('${nome}', 'column')`;
+        break;
+      }
       case 'drillDown': {
         const registros = p.drillDown([], []);
         this.detalhe.set({ titulo: 'Total geral', registros });
@@ -175,9 +167,7 @@ export class PivotPage {
 
   // ───────── Eventos e drill down ─────────
   readonly eventos = signal<Evento[]>([]);
-  readonly detalhe = signal<{ titulo: string; registros: Venda[] } | null>(null);
-  readonly colunasDetalhe = COLUNAS_DETALHE;
-  readonly totaisDetalhe = TOTAIS_DETALHE;
+  readonly detalhe = signal<{ titulo: string; registros: any[] } | null>(null);
 
   registrar(nome: string, detalhe: string) {
     const hora = new Date().toLocaleTimeString('pt-BR');
@@ -187,6 +177,7 @@ export class PivotPage {
   /** Texto de um valor do caminho: trimestre vira "T1", mês vira "mar". */
   private texto(campo: string, v: any): string {
     if (campo === 'trimestre') return `T${v}`;
+    if (campo === 'faixa' && typeof v === 'number') return FAIXAS[v] ?? String(v);
     if (campo === 'diaSemana' && typeof v === 'number') {
       return new Date(2024, 0, 7 + v).toLocaleDateString(this.o().locale, { weekday: 'short' }).replace('.', '');
     }
@@ -196,7 +187,7 @@ export class PivotPage {
     return String(v);
   }
 
-  private caminho(d: PivotCellEventDetail<Venda>): string {
+  private caminho(d: PivotCellEventDetail<any>): string {
     const partes = (path: any[], campos: string[]) => path.map((v, i) => this.texto(campos[i], v)).join(' › ');
     const linha = d.rowType === 'grand' ? 'Total geral' : partes(d.rowPath, d.rowFields);
     const coluna = d.columnType === 'grand' ? 'Total geral' : partes(d.columnPath, d.columnFields);

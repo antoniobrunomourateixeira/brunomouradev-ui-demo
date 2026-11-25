@@ -1,5 +1,6 @@
 import { ArquivoCodigo, Linguagem, VERSAO } from '../shared/codigo';
 import { camposCodigo, montarCampos } from './campos';
+import { BASES } from './bases';
 import { OpcoesPivot } from './opcoes-pivot';
 
 /** Gera o código de exemplo do PivotGrid. Só entra o que é diferente do padrão. */
@@ -36,9 +37,9 @@ function desligadas(o: OpcoesPivot): string[] {
   return p;
 }
 
-const TEXTOS = `{
+const textos = (o: OpcoesPivot) => `{
   grandTotal: 'Total geral',
-  noData: 'Nenhuma venda no período',
+  noData: '${BASES[o.base].codigo.semDados}',
   availableFields: 'Campos disponíveis',
 }`;
 
@@ -46,7 +47,7 @@ function declaracoes(o: OpcoesPivot, ts: boolean, kw: string): string {
   const campos = camposCodigo(montarCampos(o));
   const tipo = ts ? ': PivotField<Venda>[]' : '';
   let out = `${kw}campos${tipo} = ${campos};`;
-  if (o.mensagens) out += `\n\n${kw}textos${ts ? ': Partial<PivotGridMessages>' : ''} = ${TEXTOS};`;
+  if (o.mensagens) out += `\n\n${kw}textos${ts ? ': Partial<PivotGridMessages>' : ''} = ${textos(o)};`;
   return out;
 }
 
@@ -231,7 +232,26 @@ ${sets.join('\n')}
   return [{ nome: 'index.html', codigo }];
 }
 
+/** O código é escrito com os nomes da base de vendas; para outra base, troca os nomes. */
+function renomear(arquivos: ArquivoCodigo[], o: OpcoesPivot): ArquivoCodigo[] {
+  const c = BASES[o.base].codigo;
+  if (o.base === 'vendas') return arquivos;
+  const troca = (t: string) =>
+    t
+      .replace(/Vendas(?=Component)/g, c.componente)
+      .replace(/\bVendas\b/g, c.componente)
+      .replace(/\bVenda\b/g, c.tipo)
+      .replace(/\/api\/vendas/g, c.endpoint)
+      .replace(/\bvendas\b/g, c.lista)
+      .replace(/\bvenda\b/g, c.arquivo);
+  return arquivos.map((a) => ({ nome: troca(a.nome), codigo: troca(a.codigo) }));
+}
+
 export function gerarCodigoPivot(lang: Linguagem, o: OpcoesPivot): ArquivoCodigo[] {
+  return renomear(gerarCodigoVendas(lang, o), o);
+}
+
+function gerarCodigoVendas(lang: Linguagem, o: OpcoesPivot): ArquivoCodigo[] {
   switch (lang) {
     case 'angular':
       return angular(o);

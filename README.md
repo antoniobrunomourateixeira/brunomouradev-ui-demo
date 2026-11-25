@@ -66,8 +66,30 @@ O Pivot usa uma base de **vendas de uma rede de varejo de eletrônicos** (jan/20
 
 ![Drill down](docs/prints/08-pivot-drill-down.png)
 
-### O que dá para testar
+### Carteira de cobrança
 
+No seletor **Base de dados** dá para trocar as vendas por uma **carteira de cobrança** de uma assessoria
+(`src/app/pivot/titulos.ts`, 5 mil ou 50 mil títulos): 6 credores de segmentos diferentes (banco, financeira,
+varejo, telecom, energia, escola) com suas carteiras e faixas de valor, vencimentos de 2024 a 2026 com data-base
+em 31/10/2026, juros e multa pelo atraso, acordos (em dia ou quebrados), protestos e o canal do último contato.
+Quanto mais velha a dívida, menor a chance de recuperar e maior o desconto para quitar; WhatsApp e ligação
+recuperam mais que carta.
+
+- **Linhas e colunas:** Credor › Carteira, Operador › Último contato, Região › UF, Faixa de atraso, Situação, Ano › Trimestre do vencimento
+- **Medidas:** saldo em aberto, valor recuperado, quantidade de títulos e taxa de recuperação; segundo valor com desconto concedido e atraso médio
+- **Faixa de atraso** é um número (0 a 6) com `format` em função: ordena na sequência certa e mostra "A vencer", "1 a 30 dias"… "Mais de 360 dias"
+
+**Saldo em aberto por Credor › Carteira e faixa de atraso, com escala de vermelhos (`colorScale` com `minColor`/`maxColor`)**
+
+![Cobrança: saldo por faixa](docs/prints/09-cobranca-saldo-por-faixa.png)
+
+**Taxa de recuperação por faixa de atraso e último contato: quanto mais velha a dívida, menos se recupera**
+
+![Cobrança: recuperação por canal](docs/prints/10-cobranca-recuperacao-por-canal.png)
+
+### O que dá para testar no PivotGrid
+
+- **Base de dados:** vendas de varejo ou carteira de cobrança, cada uma com seus campos, medidas e drill down
 - **Campos:** linhas (Região › UF, Categoria › Produto, Canal › Vendedor, UF › Cidade) e colunas (Ano › Trimestre, Ano › Mês, Ano, Canal) pré-montadas; os outros campos (tipo de cliente, venda/devolução, dia da semana…) ficam no painel para arrastar
 - **Valores:** medida (faturamento, lucro, unidades), agregação (`sum`, `avg`, `count`, `min`, `max`), segundo valor (unidades, lucro, ticket médio), **mostrar valores como** (`summaryDisplayMode`: % do total, % da linha/coluna, % do pai, diferença, acumulado)
 - **Formatação condicional:** barras (`dataBar`), escala de cores (`colorScale`) ou regra própria (função)
@@ -96,7 +118,7 @@ Abra http://localhost:4200. Cada push na `main` publica o site no GitHub Pages (
 |---|---|
 | `src/app/app.ts` / `app.routes.ts` | topo com o menu e as rotas (`#/datagrid`, `#/pivot`) |
 | `src/app/datagrid/` | página da DataGrid: tela, opções (`opcoes.ts`) e gerador de código |
-| `src/app/pivot/` | página do PivotGrid: tela, opções, campos (`campos.ts`), vendas (`vendas.ts`) e gerador de código |
+| `src/app/pivot/` | página do PivotGrid: tela, opções, bases de dados (`bases.ts`, `vendas.ts`, `titulos.ts`), campos (`campos.ts`) e gerador de código |
 | `src/app/shared/painel-codigo.ts` | cartão do código (abas Angular, React, Vue, HTML puro) |
 | `src/app/shared/painel-eventos.ts` | cartão do log de eventos |
 | `src/app/shared/bm-cell-template.directive.ts` | diretiva `bmCellTemplate` (templates de célula do Angular) |
