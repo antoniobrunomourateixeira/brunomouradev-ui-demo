@@ -1,19 +1,10 @@
-<header class="topo">
-  <div class="marca">
-    <span class="logo" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 4h18v4H3zm0 6h5v4H3zm7 0h11v4H10zm-7 6h5v4H3zm7 0h11v4H10z"/></svg>
-    </span>
-    <div>
-      <h1>DataGrid</h1>
-      <p>&#64;brunomouradev/data-grid 0.1.4 · protótipo em Angular 20</p>
-    </div>
-  </div>
-  <button class="btn-ghost" (click)="restaurar()">Restaurar padrão</button>
-</header>
-
 <div class="layout">
   <!-- ═════════════ Painel de opções ═════════════ -->
   <aside class="painel">
+    <div class="painel-topo">
+      <span>Opções</span>
+      <button class="link" (click)="restaurar()">Restaurar padrão</button>
+    </div>
     <section>
       <h2>Fonte de dados</h2>
       <div class="seg">
@@ -277,45 +268,10 @@
     </section>
 
     <div class="inferior">
-      <!-- Código -->
-      <section class="cartao codigo">
-        <div class="codigo-topo">
-          <div class="abas">
-            @for (l of linguagens; track l.id) {
-              <button [class.on]="lang() === l.id" (click)="trocarLang(l.id)">{{ l.rotulo }}</button>
-            }
-          </div>
-          <button class="btn-ghost pequeno" (click)="copiar()">{{ copiado() ? 'Copiado ✓' : 'Copiar' }}</button>
-        </div>
-        <div class="instalar"><span>Instalar</span><code>{{ instalacao() }}</code></div>
-        <div class="arquivos">
-          @for (a of arquivos(); track a.nome; let i = $index) {
-            <button [class.on]="arquivo().nome === a.nome" (click)="arquivoIdx.set(i)">{{ a.nome }}</button>
-          }
-        </div>
-        <pre><code [innerHTML]="codigoHtml()"></code></pre>
+      <app-painel-codigo [gerar]="gerar()" [instalar]="instalar">
         <p class="dica">Teclado: setas navegam, Enter dispara <code>row-enter</code>, espaço seleciona e Ctrl+C copia as linhas selecionadas (<code>copy-rows</code>).</p>
-        <p class="dica">O código acompanha as opções marcadas: só entra o que é diferente do padrão.</p>
-      </section>
-
-      <!-- Eventos -->
-      <section class="cartao eventos">
-        <div class="codigo-topo">
-          <h3>Eventos</h3>
-          <button class="btn-ghost pequeno" (click)="eventos.set([])">Limpar</button>
-        </div>
-        <ol>
-          @for (e of eventos(); track $index) {
-            <li>
-              <span class="hora">{{ e.hora }}</span>
-              <span class="nome">{{ e.nome }}</span>
-              <span class="det">{{ e.detalhe }}</span>
-            </li>
-          } @empty {
-            <li class="vazio">Interaja com a grid para ver os eventos aqui.</li>
-          }
-        </ol>
-      </section>
+      </app-painel-codigo>
+      <app-painel-eventos [eventos]="eventos()" (limpar)="eventos.set([])" vazio="Interaja com a grid para ver os eventos aqui." />
     </div>
   </main>
 </div>

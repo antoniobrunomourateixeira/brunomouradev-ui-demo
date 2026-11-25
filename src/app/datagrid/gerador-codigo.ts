@@ -1,18 +1,11 @@
-import { OPCOES_PADRAO, Opcoes } from './opcoes';
+import { ArquivoCodigo, Linguagem, VERSAO } from '../shared/codigo';
+import { Opcoes } from './opcoes';
 
 /**
  * Gera o código de exemplo (Angular, React, Vue e HTML puro) a partir das opções
  * marcadas no painel. Só entram no código as opções diferentes do padrão da grid.
  */
 
-export type Linguagem = 'angular' | 'react' | 'vue' | 'html';
-
-export interface ArquivoCodigo {
-  nome: string;
-  codigo: string;
-}
-
-const VERSAO = '0.1.4';
 
 /** Atributos simples (texto e liga/desliga) que funcionam em qualquer framework. */
 function atributos(o: Opcoes): string[] {
@@ -485,12 +478,3 @@ export function gerarCodigo(lang: Linguagem, o: Opcoes): ArquivoCodigo[] {
       return html(o);
   }
 }
-
-export const INSTALACAO: Record<Linguagem, string> = {
-  angular: `npm i @brunomouradev/data-grid@${VERSAO}`,
-  react: `npm i @brunomouradev/data-grid@${VERSAO}`,
-  vue: `npm i @brunomouradev/data-grid@${VERSAO}`,
-  html: `<script type="module" src="https://cdn.jsdelivr.net/npm/@brunomouradev/data-grid@${VERSAO}/dist/index.js"></script>`,
-};
-
-export { OPCOES_PADRAO };

@@ -1,0 +1,278 @@
+<div class="layout">
+  <!-- ═════════════ Painel de opções ═════════════ -->
+  <aside class="painel">
+    <div class="painel-topo">
+      <span>Opções</span>
+      <button class="link" (click)="restaurar()">Restaurar padrão</button>
+    </div>
+
+    <section>
+      <h2>Fonte de dados</h2>
+      <div class="seg">
+        <button [class.on]="o().fonte === 'local'" (click)="set('fonte', 'local')">500 faturas</button>
+        <button [class.on]="o().fonte === 'grande'" (click)="set('fonte', 'grande')">20 mil</button>
+      </div>
+      <p class="dica">As mesmas faturas da página DataGrid, resumidas por UF, cliente e período.</p>
+    </section>
+
+    <section>
+      <h2>Aparência</h2>
+      <label class="campo">
+        <span>Tema <code>theme</code></span>
+        <select [value]="o().theme" (change)="set('theme', $any(valor($event)))">
+          @for (t of temas; track t) { <option [value]="t">{{ t }}</option> }
+        </select>
+      </label>
+      <div class="campo">
+        <span>Modo <code>appearance</code></span>
+        <div class="seg">
+          <button [class.on]="o().appearance === 'light'" (click)="set('appearance', 'light')">Claro</button>
+          <button [class.on]="o().appearance === 'dark'" (click)="set('appearance', 'dark')">Escuro</button>
+          <button [class.on]="o().appearance === 'auto'" (click)="set('appearance', 'auto')">Auto</button>
+        </div>
+      </div>
+      <div class="campo">
+        <span>Densidade <code>density</code></span>
+        <div class="seg">
+          <button [class.on]="o().density === 'compact'" (click)="set('density', 'compact')">Compacta</button>
+          <button [class.on]="o().density === 'standard'" (click)="set('density', 'standard')">Padrão</button>
+          <button [class.on]="o().density === 'comfortable'" (click)="set('density', 'comfortable')">Confortável</button>
+        </div>
+      </div>
+      <div class="campo">
+        <span>Idioma <code>locale</code></span>
+        <div class="seg">
+          <button [class.on]="o().locale === 'pt-BR'" (click)="set('locale', 'pt-BR')">pt-BR</button>
+          <button [class.on]="o().locale === 'en-US'" (click)="set('locale', 'en-US')">en-US</button>
+        </div>
+      </div>
+      <div class="campo linha">
+        <span>Cor de destaque <code>--bm-color-primary</code></span>
+        <span class="cor">
+          <input type="color" [value]="o().corPrimaria || '#2563eb'" (input)="set('corPrimaria', valor($event))" />
+          @if (o().corPrimaria) { <button class="link" (click)="set('corPrimaria', '')">limpar</button> }
+        </span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Campos</h2>
+      <label class="campo">
+        <span>Linhas <code>area: 'row'</code></span>
+        <select [value]="o().linhas" (change)="set('linhas', $any(valor($event)))">
+          <option value="uf-cliente">UF › Cliente</option>
+          <option value="vendedor-status">Vendedor › Status</option>
+          <option value="forma-uf">Forma de pgto › UF</option>
+        </select>
+      </label>
+      <label class="campo">
+        <span>Colunas <code>area: 'column'</code></span>
+        <select [value]="o().colunas" (change)="set('colunas', $any(valor($event)))">
+          <option value="ano-trimestre">Ano › Trimestre</option>
+          <option value="ano-mes">Ano › Mês</option>
+          <option value="status">Status</option>
+          <option value="nenhuma">Nenhuma</option>
+        </select>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().expandido" (change)="alternar('expandido')" />
+        <span class="trilho"></span><span class="rot">Grupos começam abertos</span><code>expanded</code>
+      </label>
+      <p class="dica">Os outros campos ficam no painel para arrastar (campos sem <code>area</code>).</p>
+    </section>
+
+    <section>
+      <h2>Valores</h2>
+      <div class="campo">
+        <span>Agregação <code>summaryType</code></span>
+        <div class="seg">
+          @for (t of ['sum', 'avg', 'count', 'min', 'max']; track t) {
+            <button [class.on]="o().summaryType === t" (click)="set('summaryType', $any(t))">{{ t }}</button>
+          }
+        </div>
+      </div>
+      <label class="campo">
+        <span>Mostrar valores como <code>summaryDisplayMode</code></span>
+        <select [value]="o().summaryDisplayMode" (change)="set('summaryDisplayMode', $any(valor($event)))">
+          @for (m of modos; track m.id) { <option [value]="m.id">{{ m.rotulo }}</option> }
+        </select>
+      </label>
+      <label class="campo">
+        <span>Formatação condicional <code>conditionalFormat</code></span>
+        <select [value]="o().conditionalFormat" (change)="set('conditionalFormat', $any(valor($event)))">
+          <option value="nenhum">Nenhuma</option>
+          <option value="dataBar">Barras (dataBar)</option>
+          <option value="colorScale">Escala de cores (colorScale)</option>
+          <option value="regra">Regra própria (função)</option>
+        </select>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().quantidade" (change)="alternar('quantidade')" />
+        <span class="trilho"></span><span class="rot">Segundo valor: quantidade</span><code>summaryType: 'count'</code>
+      </label>
+    </section>
+
+    <section>
+      <h2>Ordenação, Top N e filtro</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().ordenarPorTotal" (change)="alternar('ordenarPorTotal')" />
+        <span class="trilho"></span><span class="rot">Linhas pelo maior total</span><code>sortBySummaryField</code>
+      </label>
+      <label class="campo linha">
+        <span>Top N <code>topN</code></span>
+        <select [value]="'' + o().topN" (change)="set('topN', $any(+valor($event)))">
+          <option value="0">Todos</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+        </select>
+      </label>
+      <label class="sw" [class.off]="!o().topN">
+        <input type="checkbox" [checked]="o().topNMenores" (change)="alternar('topNMenores')" />
+        <span class="trilho"></span><span class="rot">Os menores em vez dos maiores</span><code>topN.bottom</code>
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().filtroInicial" (change)="alternar('filtroInicial')" />
+        <span class="trilho"></span><span class="rot">Começar sem as canceladas</span><code>filterValues / filterType</code>
+      </label>
+    </section>
+
+    <section>
+      <h2>Layout das linhas</h2>
+      <div class="campo">
+        <span><code>row-layout</code></span>
+        <div class="seg">
+          <button [class.on]="o().rowLayout === 'tree'" (click)="set('rowLayout', 'tree')">Árvore</button>
+          <button [class.on]="o().rowLayout === 'tabular'" (click)="set('rowLayout', 'tabular')">Tabular</button>
+        </div>
+      </div>
+      <label class="sw" [class.off]="o().rowLayout !== 'tabular'">
+        <input type="checkbox" [checked]="o().showRowTotals" (change)="alternar('showRowTotals')" />
+        <span class="trilho"></span><span class="rot">Linha "X Total" abaixo do grupo</span><code>showRowTotals</code>
+      </label>
+      <label class="campo linha">
+        <span>Largura do cabeçalho <code>row-header-width</code></span>
+        <select [value]="'' + o().rowHeaderWidth" (change)="set('rowHeaderWidth', +valor($event))">
+          @for (n of [160, 220, 300]; track n) { <option [value]="'' + n">{{ n }}px</option> }
+        </select>
+      </label>
+    </section>
+
+    @for (grupo of grupos; track grupo.titulo) {
+      <section>
+        <h2>{{ grupo.titulo }}</h2>
+        @for (t of grupo.itens; track t.k) {
+          <label class="sw">
+            <input type="checkbox" [checked]="o()[t.k]" (change)="alternar(t.k)" />
+            <span class="trilho"></span><span class="rot">{{ t.rotulo }}</span><code>{{ t.api }}</code>
+          </label>
+        }
+      </section>
+    }
+
+    <section>
+      <h2>Exportação e textos</h2>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().showExportButton" (change)="alternar('showExportButton')" />
+        <span class="trilho"></span><span class="rot">Botão Exportar</span><code>show-export-button</code>
+      </label>
+      <div class="campo linha" [class.off]="!o().showExportButton">
+        <span>Formatos <code>export-formats</code></span>
+        <span class="checks">
+          <label><input type="checkbox" [checked]="o().exportXlsx" (change)="alternar('exportXlsx')" /> xlsx</label>
+          <label><input type="checkbox" [checked]="o().exportCsv" (change)="alternar('exportCsv')" /> csv</label>
+        </span>
+      </div>
+      <label class="campo" [class.off]="!o().showExportButton">
+        <span>Nome do arquivo <code>export-file-name</code></span>
+        <input type="text" [value]="o().exportFileName" (input)="set('exportFileName', valor($event))" />
+      </label>
+      <label class="sw">
+        <input type="checkbox" [checked]="o().mensagens" (change)="alternar('mensagens')" />
+        <span class="trilho"></span><span class="rot">Textos personalizados</span><code>messages</code>
+      </label>
+    </section>
+  </aside>
+
+  <!-- ═════════════ Área principal ═════════════ -->
+  <main class="principal">
+    <section class="cartao">
+      <div class="cartao-topo">
+        <div>
+          <h2>Faturamento</h2>
+          <p>{{ dados().length.toLocaleString('pt-BR') }} faturas · arraste os campos entre as áreas · duplo clique numa célula mostra as faturas dela</p>
+        </div>
+      </div>
+
+      <div class="palco" [class.escuro]="o().appearance === 'dark'">
+        <bm-pivot-grid
+          #pivot
+          [theme]="o().theme"
+          [appearance]="o().appearance"
+          [density]="o().density"
+          [locale]="o().locale"
+          [style.--bm-color-primary]="o().corPrimaria || null"
+          [dataSource]="dados()"
+          [fields]="campos()"
+          [messages]="mensagens()"
+          [showFieldPanel]="o().showFieldPanel"
+          [showExpandButtons]="o().showExpandButtons"
+          [showExportButton]="o().showExportButton"
+          [exportFormats]="exportFormats()"
+          [exportFileName]="o().exportFileName || 'pivot'"
+          [rowLayout]="o().rowLayout"
+          [showRowTotals]="o().showRowTotals"
+          [rowHeaderWidth]="o().rowHeaderWidth"
+          [showRowGrandTotals]="o().showRowGrandTotals"
+          [showColumnGrandTotals]="o().showColumnGrandTotals"
+          [showColumnTotals]="o().showColumnTotals"
+          [allowFieldDragging]="o().allowFieldDragging"
+          [allowSorting]="o().allowSorting"
+          [allowFiltering]="o().allowFiltering"
+          (cell-click)="ev('cell-click', $event)"
+          (cell-dblclick)="ev('cell-dblclick', $event)"
+          (fields-changed)="ev('fields-changed', $event)"
+        ></bm-pivot-grid>
+      </div>
+
+      <div class="metodos">
+        <span class="metodos-rot">Métodos</span>
+        @for (m of metodos; track m.m) {
+          <button class="chip" (click)="executar(m.m)">{{ m.rotulo }}</button>
+        }
+      </div>
+    </section>
+
+    @if (detalhe(); as d) {
+      <section class="cartao">
+        <div class="cartao-topo">
+          <div>
+            <h2>Drill down: {{ d.titulo }}</h2>
+            <p>{{ d.registros.length }} faturas por trás da célula · <code>cell-dblclick</code> → <code>detail.records</code>, mostradas numa <code>&lt;bm-data-grid&gt;</code></p>
+          </div>
+          <button class="btn-ghost pequeno" (click)="detalhe.set(null)">Fechar</button>
+        </div>
+        <bm-data-grid
+          class="detalhe"
+          key-expr="id"
+          show-search-panel
+          [theme]="o().theme"
+          [appearance]="o().appearance"
+          [density]="o().density"
+          [locale]="o().locale"
+          [columns]="colunasDetalhe"
+          [dataSource]="d.registros"
+          [summary]="[{ column: 'valor', summaryType: 'sum', displayFormat: 'Total: {0}' }]"
+          [paging]="{ pageSize: 10 }"
+        ></bm-data-grid>
+      </section>
+    }
+
+    <div class="inferior">
+      <app-painel-codigo [gerar]="gerar()" [instalar]="instalar">
+        <p class="dica">O PivotGrid usa a mesma configuração global da DataGrid: <code>configure(&#123; theme, locale &#125;)</code> vale para os dois.</p>
+      </app-painel-codigo>
+      <app-painel-eventos [eventos]="eventos()" (limpar)="eventos.set([])" vazio="Clique numa célula, arraste um campo ou use os métodos." />
+    </div>
+  </main>
+</div>
