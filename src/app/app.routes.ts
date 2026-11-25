@@ -7,8 +7,10 @@ export const routes: Routes = [
     title: 'DataGrid · brunomouradev-ui',
     loadComponent: () => import('./datagrid/datagrid-page').then((m) => m.DataGridPage),
   },
+  { path: 'pivot', pathMatch: 'full', redirectTo: 'pivot/vendas' },
   {
-    path: 'pivot',
+    // :base = vendas | cobranca (um endereço por base de dados)
+    path: 'pivot/:base',
     title: 'PivotGrid · brunomouradev-ui',
     loadComponent: () => import('./pivot/pivot-page').then((m) => m.PivotPage),
   },

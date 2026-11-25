@@ -7,13 +7,8 @@
     </div>
 
     <section>
-      <h2>Base de dados</h2>
+      <h2>Base de dados: {{ base().rotulo }}</h2>
       <div class="seg">
-        @for (b of bases; track b.id) {
-          <button [class.on]="o().base === b.id" (click)="trocarBase(b.id)">{{ b.rotulo }}</button>
-        }
-      </div>
-      <div class="seg" style="margin-top: 8px">
         <button [class.on]="o().fonte === 'local'" (click)="set('fonte', 'local')">{{ base().tamanhos[0].toLocaleString('pt-BR') }} {{ base().registros }}</button>
         <button [class.on]="o().fonte === 'grande'" (click)="set('fonte', 'grande')">{{ base().tamanhos[1].toLocaleString('pt-BR') }}</button>
       </div>
@@ -206,6 +201,14 @@
   <!-- ═════════════ Área principal ═════════════ -->
   <main class="principal">
     <section class="cartao">
+      <div class="abas-base" role="tablist" aria-label="Base de dados">
+        @for (b of bases; track b.id) {
+          <button role="tab" [attr.aria-selected]="o().base === b.id" [class.on]="o().base === b.id" (click)="trocarBase(b.id)">
+            <strong>{{ b.rotulo }}</strong>
+            <span>{{ b.id === 'vendas' ? 'faturamento, lucro e unidades' : 'saldo, recuperação e atraso' }}</span>
+          </button>
+        }
+      </div>
       <div class="cartao-topo">
         <div>
           <h2>{{ base().titulo }}</h2>

@@ -12,7 +12,8 @@ O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme 
 | Página | Endereço |
 |---|---|
 | DataGrid | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/datagrid |
-| PivotGrid | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/pivot |
+| PivotGrid · vendas | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/pivot/vendas |
+| PivotGrid · carteira de cobrança | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/pivot/cobranca |
 
 ![DataGrid](docs/prints/01-visao-geral.png)
 
@@ -116,7 +117,7 @@ Abra http://localhost:4200. Cada push na `main` publica o site no GitHub Pages (
 
 | Arquivo | O que tem |
 |---|---|
-| `src/app/app.ts` / `app.routes.ts` | topo com o menu e as rotas (`#/datagrid`, `#/pivot`) |
+| `src/app/app.ts` / `app.routes.ts` | topo com o menu e as rotas (`#/datagrid`, `#/pivot/vendas`, `#/pivot/cobranca`) |
 | `src/app/datagrid/` | página da DataGrid: tela, opções (`opcoes.ts`) e gerador de código |
 | `src/app/pivot/` | página do PivotGrid: tela, opções, bases de dados (`bases.ts`, `vendas.ts`, `titulos.ts`), campos (`campos.ts`) e gerador de código |
 | `src/app/shared/painel-codigo.ts` | cartão do código (abas Angular, React, Vue, HTML puro) |

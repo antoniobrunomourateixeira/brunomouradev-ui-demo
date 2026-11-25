@@ -210,6 +210,31 @@ bm-data-grid.detalhe { height: 440px; }
   &:hover { border-color: var(--acento); color: var(--acento); }
 }
 
+/* ───── Abas da base de dados (PivotGrid) ───── */
+.abas-base {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 16px;
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    background: #fff;
+    font: inherit;
+    text-align: left;
+    color: var(--suave);
+    cursor: pointer;
+    strong { font-size: 14px; font-weight: 600; color: var(--texto); }
+    span { font-size: 12px; }
+    &:hover { border-color: var(--acento); }
+    &.on { border-color: var(--acento); background: var(--acento-claro); box-shadow: inset 0 0 0 1px var(--acento); }
+  }
+}
+
 /* ───── Código e eventos ───── */
 .inferior {
   display: grid;

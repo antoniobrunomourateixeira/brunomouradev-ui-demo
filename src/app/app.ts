@@ -20,6 +20,7 @@ import { VERSAO } from './shared/codigo';
 
       <nav class="menu">
         <a routerLink="/datagrid" routerLinkActive="on">DataGrid</a>
+        <!-- /pivot redireciona para /pivot/vendas; o link fica ativo em qualquer base -->
         <a routerLink="/pivot" routerLinkActive="on">PivotGrid</a>
       </nav>
 

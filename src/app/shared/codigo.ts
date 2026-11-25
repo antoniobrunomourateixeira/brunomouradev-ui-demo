@@ -8,7 +8,7 @@ export interface ArquivoCodigo {
 }
 
 /** Versão dos pacotes @brunomouradev usada nos exemplos de código. */
-export const VERSAO = '0.1.5';
+export const VERSAO = '0.1.6';
 
 export const LINGUAGENS: { id: Linguagem; rotulo: string }[] = [
   { id: 'angular', rotulo: 'Angular' },

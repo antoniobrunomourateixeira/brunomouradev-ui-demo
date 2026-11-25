@@ -1,4 +1,5 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, Signal, computed, signal, untracked, viewChild } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, Signal, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import '@brunomouradev/pivot-grid';
 import '@brunomouradev/data-grid';
 import type { BmPivotGrid, PivotCellEventDetail, PivotGridMessages } from '@brunomouradev/pivot-grid';
@@ -95,10 +96,25 @@ export class PivotPage {
     this.o.update((o) => ({ ...o, [k]: v }));
   }
 
+  /** Base vinda do endereço (#/pivot/vendas ou #/pivot/cobranca). */
+  readonly baseDaRota = input<string | undefined>(undefined, { alias: 'base' });
+  private readonly router = inject(Router);
+
+  constructor() {
+    effect(() => {
+      const id = this.baseDaRota();
+      if (!id || !(id in BASES)) return;
+      untracked(() => {
+        if (id === this.o().base) return;
+        this.o.update((o) => opcoesDaBase(o, id as IdBase));
+        this.detalhe.set(null);
+      });
+    });
+  }
+
+  /** Troca a base mudando o endereço (assim dá para compartilhar o link de cada base). */
   trocarBase(id: IdBase) {
-    if (id === this.o().base) return;
-    this.o.update((o) => opcoesDaBase(o, id));
-    this.detalhe.set(null);
+    if (id !== this.o().base) this.router.navigate(['/pivot', id]);
   }
 
   alternar(k: ChaveBool) {
