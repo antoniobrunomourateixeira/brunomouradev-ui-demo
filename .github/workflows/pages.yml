@@ -1,5 +1,5 @@
 # Publica o protótipo no GitHub Pages a cada push na main.
-# Endereço: https://antoniobrunomourateixeira.github.io/datagrid-prototipo/
+# Endereço: https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/
 name: Deploy GitHub Pages
 
 on:
@@ -29,8 +29,9 @@ jobs:
 
       - run: npm ci
 
-      # O site fica em /datagrid-prototipo/, então o base-href precisa ser esse
-      - run: npx ng build --base-href /datagrid-prototipo/
+      # O site fica em /brunomouradev-ui-demo/ (nome do repositório), então o base-href precisa ser esse.
+      # O dist continua em dist/datagrid-prototipo (nome do projeto no angular.json).
+      - run: npx ng build --base-href /brunomouradev-ui-demo/
 
       - uses: actions/upload-pages-artifact@v3
         with:

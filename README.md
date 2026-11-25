@@ -7,12 +7,12 @@ Demonstração em **Angular 20** dos componentes da [brunomouradev-ui](https://g
 Cada componente tem uma página com todas as opções num painel lateral, os métodos em botões e os eventos num log ao vivo.
 O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme as opções marcadas.
 
-**▶ Ver rodando:** https://antoniobrunomourateixeira.github.io/datagrid-prototipo/
+**▶ Ver rodando:** https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/
 
 | Página | Endereço |
 |---|---|
-| DataGrid | https://antoniobrunomourateixeira.github.io/datagrid-prototipo/#/datagrid |
-| PivotGrid | https://antoniobrunomourateixeira.github.io/datagrid-prototipo/#/pivot |
+| DataGrid | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/datagrid |
+| PivotGrid | https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/#/pivot |
 
 ![DataGrid](docs/prints/01-visao-geral.png)
 
@@ -106,6 +106,6 @@ O modo "Servidor" da DataGrid simula um back-end com o motor da própria lib (`@
 
 ## Links
 
-- Online (GitHub Pages): https://antoniobrunomourateixeira.github.io/datagrid-prototipo/
+- Online (GitHub Pages): https://antoniobrunomourateixeira.github.io/brunomouradev-ui-demo/
 - Biblioteca: https://github.com/antoniobrunomourateixeira/brunomouradev-ui
 - npm: [@brunomouradev/data-grid](https://www.npmjs.com/package/@brunomouradev/data-grid) · [@brunomouradev/pivot-grid](https://www.npmjs.com/package/@brunomouradev/pivot-grid)
