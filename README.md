@@ -52,24 +52,26 @@ O código equivalente em **Angular, React, Vue e HTML puro** é gerado conforme 
 
 ## PivotGrid
 
-**Vendedor › Status por Ano › Trimestre, com barras (`dataBar`) e painel de campos para arrastar**
+O Pivot usa uma base de **vendas de uma rede de varejo de eletrônicos** (jan/2024 a out/2026): 18 cidades em 5 regiões, 16 produtos com preço e custo, 4 canais (loja, e-commerce, marketplace com comissão, televendas), sazonalidade (Black Friday, Natal, Dia das Mães, janeiro fraco), crescimento ano a ano, inflação nos preços e ~3% de devoluções. Gerada em `src/app/pivot/vendas.ts` (5 mil ou 50 mil vendas).
+
+**Faturamento por Região › UF e Ano, ordenado pelo maior total, com barras (`dataBar`) e painel de campos para arrastar**
 
 ![PivotGrid](docs/prints/06-pivot-visao-geral.png)
 
-**Bootstrap 5, layout tabular, escala de cores (`colorScale`) e dois valores (soma e quantidade)**
+**Bootstrap 5, layout tabular: lucro e unidades por Categoria › Produto e Canal, com regra própria de cor (verde = bateu a meta)**
 
 ![Pivot tabular com cores](docs/prints/07-pivot-tabular-cores.png)
 
-**Drill down: duplo clique numa célula mostra as faturas por trás dela numa DataGrid**
+**Drill down: duplo clique numa célula mostra as vendas por trás dela numa DataGrid (os totais batem com a célula)**
 
 ![Drill down](docs/prints/08-pivot-drill-down.png)
 
 ### O que dá para testar
 
-- **Campos:** linhas e colunas pré-montadas (UF › Cliente, Vendedor › Status, Ano › Trimestre, Ano › Mês…), campos sem área no painel para arrastar, grupos abertos (`expanded`)
-- **Valores:** agregação (`sum`, `avg`, `count`, `min`, `max`), segundo valor, **mostrar valores como** (`summaryDisplayMode`: % do total, % da linha/coluna, % do pai, diferença, acumulado)
+- **Campos:** linhas (Região › UF, Categoria › Produto, Canal › Vendedor, UF › Cidade) e colunas (Ano › Trimestre, Ano › Mês, Ano, Canal) pré-montadas; os outros campos (tipo de cliente, venda/devolução, dia da semana…) ficam no painel para arrastar
+- **Valores:** medida (faturamento, lucro, unidades), agregação (`sum`, `avg`, `count`, `min`, `max`), segundo valor (unidades, lucro, ticket médio), **mostrar valores como** (`summaryDisplayMode`: % do total, % da linha/coluna, % do pai, diferença, acumulado)
 - **Formatação condicional:** barras (`dataBar`), escala de cores (`colorScale`) ou regra própria (função)
-- **Ordenação e Top N:** linhas pelo maior total (`sortBySummaryField`), `topN` (maiores ou menores), filtro inicial (`filterValues` / `filterType`)
+- **Ordenação e Top N:** linhas pelo maior total (`sortBySummaryField`), `topN` (maiores ou menores), filtro inicial sem devoluções (`filterValues` / `filterType`)
 - **Layout:** árvore ou tabular (`row-layout`), linha "X Total", largura do cabeçalho, totais gerais e subtotais
 - **Interação:** painel de campos, expandir/recolher tudo, travar arrastar, ordenar e filtrar
 - **Exportação e textos:** Excel e CSV, nome do arquivo, `messages`
@@ -94,11 +96,11 @@ Abra http://localhost:4200. Cada push na `main` publica o site no GitHub Pages (
 |---|---|
 | `src/app/app.ts` / `app.routes.ts` | topo com o menu e as rotas (`#/datagrid`, `#/pivot`) |
 | `src/app/datagrid/` | página da DataGrid: tela, opções (`opcoes.ts`) e gerador de código |
-| `src/app/pivot/` | página do PivotGrid: tela, opções, campos (`campos.ts`) e gerador de código |
+| `src/app/pivot/` | página do PivotGrid: tela, opções, campos (`campos.ts`), vendas (`vendas.ts`) e gerador de código |
 | `src/app/shared/painel-codigo.ts` | cartão do código (abas Angular, React, Vue, HTML puro) |
 | `src/app/shared/painel-eventos.ts` | cartão do log de eventos |
 | `src/app/shared/bm-cell-template.directive.ts` | diretiva `bmCellTemplate` (templates de célula do Angular) |
-| `src/app/shared/data.ts` | faturas fictícias usadas pelas duas páginas |
+| `src/app/shared/data.ts` | faturas fictícias da página DataGrid |
 | `src/app/shared/_demo.scss` | estilos comuns das páginas |
 | `src/styles.scss` | estilos globais e CSS das regras de linha/célula via `::part()` |
 

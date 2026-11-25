@@ -1,6 +1,6 @@
 import type { PivotCellInfo, PivotField } from '@brunomouradev/pivot-grid';
-import type { Fatura } from '../shared/data';
 import { OpcoesPivot } from './opcoes-pivot';
+import type { Venda } from './vendas';
 
 /**
  * Monta os campos do PivotGrid a partir das opções. O mesmo resultado serve para a tela
@@ -13,106 +13,115 @@ function comCodigo<F extends Function>(fn: F, codigo: string): ComCodigo<F> {
   return Object.assign(fn, { __codigo: codigo });
 }
 
-const regraCor = comCodigo(
-  (valor: number | null, info: PivotCellInfo) =>
-    info.isTotal || valor == null ? null : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' } : valor > 50000 ? { color: '#1b7a43', 'font-weight': '600' } : null,
-  `(valor, info) =>
+/** Meta por célula de cada medida (usada na regra de cor própria). */
+const METAS: Record<OpcoesPivot['medida'], number> = { faturamento: 400_000, lucro: 80_000, quantidade: 300 };
+
+/** Regra própria: prejuízo/devolução em vermelho, acima da meta em verde. */
+function regraCor(meta: number) {
+  return comCodigo(
+    (valor: number | null, info: PivotCellInfo) =>
       info.isTotal || valor == null ? null
         : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' }
-        : valor > 50000 ? { color: '#1b7a43', 'font-weight': '600' }
+        : valor >= meta ? { color: '#1b7a43', 'font-weight': '600', background: '#ebfbee' }
+        : null,
+    `(valor, info) =>
+      info.isTotal || valor == null ? null
+        : valor < 0 ? { color: '#c92a2a', 'font-weight': '600' } // prejuízo
+        : valor >= ${meta} ? { color: '#1b7a43', 'font-weight': '600', background: '#ebfbee' } // bateu a meta
         : null`,
-);
+  );
+}
 
-export function montarCampos(o: OpcoesPivot): PivotField<Fatura>[] {
-  // Campos de linha conforme o preset
-  const linhas: Record<OpcoesPivot['linhas'], PivotField<Fatura>[]> = {
-    'uf-cliente': [
-      { name: 'uf', dataField: 'cliente.uf', caption: 'UF' },
-      { name: 'cliente', dataField: 'cliente.nome', caption: 'Cliente' },
-    ],
-    'vendedor-status': [
-      { name: 'vendedor', dataField: 'vendedor', caption: 'Vendedor' },
-      { name: 'status', dataField: 'status', caption: 'Status' },
-    ],
-    'forma-uf': [
-      { name: 'forma', dataField: 'forma', caption: 'Forma de pgto' },
-      { name: 'uf', dataField: 'cliente.uf', caption: 'UF' },
-    ],
-  };
-  const colunas: Record<OpcoesPivot['colunas'], PivotField<Fatura>[]> = {
-    'ano-trimestre': [
-      { name: 'ano', dataField: 'vencimento', caption: 'Ano', dataType: 'date', groupInterval: 'year' },
-      { name: 'trimestre', dataField: 'vencimento', caption: 'Trimestre', dataType: 'date', groupInterval: 'quarter' },
-    ],
-    'ano-mes': [
-      { name: 'ano', dataField: 'vencimento', caption: 'Ano', dataType: 'date', groupInterval: 'year' },
-      { name: 'mes', dataField: 'vencimento', caption: 'Mês', dataType: 'date', groupInterval: 'month' },
-    ],
-    status: [{ name: 'status', dataField: 'status', caption: 'Status' }],
-    nenhuma: [],
-  };
+const CAMPO = {
+  regiao: { name: 'regiao', dataField: 'regiao', caption: 'Região' },
+  uf: { name: 'uf', dataField: 'uf', caption: 'UF' },
+  cidade: { name: 'cidade', dataField: 'cidade', caption: 'Cidade' },
+  categoria: { name: 'categoria', dataField: 'categoria', caption: 'Categoria' },
+  produto: { name: 'produto', dataField: 'produto', caption: 'Produto' },
+  canal: { name: 'canal', dataField: 'canal', caption: 'Canal' },
+  vendedor: { name: 'vendedor', dataField: 'vendedor', caption: 'Vendedor' },
+  cliente: { name: 'cliente', dataField: 'cliente', caption: 'Tipo de cliente' },
+  tipo: { name: 'tipo', dataField: 'tipo', caption: 'Venda / devolução' },
+  ano: { name: 'ano', dataField: 'data', caption: 'Ano', dataType: 'date', groupInterval: 'year' },
+  trimestre: { name: 'trimestre', dataField: 'data', caption: 'Trimestre', dataType: 'date', groupInterval: 'quarter' },
+  mes: { name: 'mes', dataField: 'data', caption: 'Mês', dataType: 'date', groupInterval: 'month' },
+  diaSemana: { name: 'diaSemana', dataField: 'data', caption: 'Dia da semana', dataType: 'date', groupInterval: 'dayOfWeek' },
+} satisfies Record<string, PivotField<Venda>>;
 
-  const campos: PivotField<Fatura>[] = [];
+type NomeCampo = keyof typeof CAMPO;
+
+const LINHAS: Record<OpcoesPivot['linhas'], NomeCampo[]> = {
+  'regiao-uf': ['regiao', 'uf'],
+  'categoria-produto': ['categoria', 'produto'],
+  'canal-vendedor': ['canal', 'vendedor'],
+  'uf-cidade': ['uf', 'cidade'],
+};
+
+const COLUNAS: Record<OpcoesPivot['colunas'], NomeCampo[]> = {
+  'ano-trimestre': ['ano', 'trimestre'],
+  'ano-mes': ['ano', 'mes'],
+  ano: ['ano'],
+  canal: ['canal'],
+  nenhuma: [],
+};
+
+/** Campos de valor (área "data"). */
+const MEDIDAS: Record<'faturamento' | 'lucro' | 'quantidade' | 'ticket', PivotField<Venda>> = {
+  faturamento: { name: 'faturamento', dataField: 'faturamento', caption: 'Faturamento', format: 'currency' },
+  lucro: { name: 'lucro', dataField: 'lucro', caption: 'Lucro', format: 'currency' },
+  quantidade: { name: 'quantidade', dataField: 'quantidade', caption: 'Unidades', format: 'integer' },
+  ticket: { name: 'ticket', dataField: 'faturamento', caption: 'Ticket médio', summaryType: 'avg', format: 'currency' },
+};
+
+export function montarCampos(o: OpcoesPivot): PivotField<Venda>[] {
+  const campos: PivotField<Venda>[] = [];
   const usados = new Set<string>();
 
-  linhas[o.linhas].forEach((f, i) => {
-    const campo: PivotField<Fatura> = { ...f, area: 'row' };
-    if (o.expandido && i < linhas[o.linhas].length - 1) campo.expanded = true;
-    if (i === 0 && o.ordenarPorTotal) Object.assign(campo, { sortBySummaryField: 'valor', sortOrder: 'desc' });
+  LINHAS[o.linhas].forEach((nome, i, arr) => {
+    const campo: PivotField<Venda> = { ...CAMPO[nome], area: 'row' };
+    if (o.expandido && i < arr.length - 1) campo.expanded = true;
+    if (i === 0 && o.ordenarPorTotal) Object.assign(campo, { sortBySummaryField: o.medida, sortOrder: 'desc' });
     if (i === 0 && o.topN) campo.topN = o.topNMenores ? { count: o.topN, bottom: true } : { count: o.topN };
     campos.push(campo);
-    usados.add(f.name!);
+    usados.add(nome);
   });
 
-  colunas[o.colunas].forEach((f, i, arr) => {
-    if (usados.has(f.name!)) return; // status já está nas linhas
-    const campo: PivotField<Fatura> = { ...f, area: 'column' };
+  COLUNAS[o.colunas].forEach((nome, i, arr) => {
+    if (usados.has(nome)) return; // já está nas linhas
+    const campo: PivotField<Venda> = { ...CAMPO[nome], area: 'column' };
     if (o.expandido && i < arr.length - 1) campo.expanded = true;
     campos.push(campo);
-    usados.add(f.name!);
+    usados.add(nome);
   });
 
-  // Valores
-  const valor: PivotField<Fatura> = {
-    name: 'valor',
-    dataField: 'valor',
-    caption: 'Valor',
+  // Valor principal
+  const valor: PivotField<Venda> = {
+    ...MEDIDAS[o.medida],
     area: 'data',
     summaryType: o.summaryType,
-    format: o.summaryType === 'count' ? 'integer' : 'currency',
+    format: o.summaryType === 'count' || o.medida === 'quantidade' ? 'integer' : 'currency',
   };
   if (o.summaryDisplayMode !== 'absolute') valor.summaryDisplayMode = o.summaryDisplayMode;
   if (o.conditionalFormat === 'colorScale') valor.conditionalFormat = { type: 'colorScale' };
   if (o.conditionalFormat === 'dataBar') valor.conditionalFormat = { type: 'dataBar' };
-  if (o.conditionalFormat === 'regra') valor.conditionalFormat = regraCor as any;
+  if (o.conditionalFormat === 'regra') valor.conditionalFormat = regraCor(METAS[o.medida]) as any;
   campos.push(valor);
-  if (o.quantidade) {
-    campos.push({ name: 'qtd', dataField: 'id', caption: 'Qtd', area: 'data', summaryType: 'count', format: 'integer' });
+
+  // Segundo valor
+  if (o.segundoValor !== 'nenhum' && o.segundoValor !== o.medida) {
+    campos.push({ summaryType: 'sum', ...MEDIDAS[o.segundoValor], area: 'data' });
   }
 
-  // Filtro: tudo menos Cancelado (na área de filtros, se Status não estiver em uso)
+  // Filtro: só vendas (tira as devoluções), na área de filtros
   if (o.filtroInicial) {
-    const status = campos.find((c) => c.name === 'status');
-    if (status) Object.assign(status, { filterValues: ['Cancelado'], filterType: 'exclude' });
-    else {
-      campos.push({ name: 'status', dataField: 'status', caption: 'Status', area: 'filter', filterValues: ['Cancelado'], filterType: 'exclude' });
-      usados.add('status');
-    }
+    campos.push({ ...CAMPO.tipo, area: 'filter', filterValues: ['Devolução'], filterType: 'exclude' });
+    usados.add('tipo');
   }
 
-  // Campos sem área: ficam no painel para o usuário arrastar
-  const disponiveis: PivotField<Fatura>[] = [
-    { name: 'uf', dataField: 'cliente.uf', caption: 'UF' },
-    { name: 'cliente', dataField: 'cliente.nome', caption: 'Cliente' },
-    { name: 'vendedor', dataField: 'vendedor', caption: 'Vendedor' },
-    { name: 'status', dataField: 'status', caption: 'Status' },
-    { name: 'forma', dataField: 'forma', caption: 'Forma de pgto' },
-    { name: 'ano', dataField: 'vencimento', caption: 'Ano', dataType: 'date', groupInterval: 'year' },
-    { name: 'mes', dataField: 'vencimento', caption: 'Mês', dataType: 'date', groupInterval: 'month' },
-    { name: 'desconto', dataField: 'desconto', caption: 'Desconto', summaryType: 'avg', format: 'percent' },
-  ];
-  for (const f of disponiveis) if (!usados.has(f.name!)) campos.push(f);
-
+  // Os outros campos ficam no painel, sem área, para o usuário arrastar
+  for (const nome of Object.keys(CAMPO) as NomeCampo[]) {
+    if (!usados.has(nome)) campos.push({ ...CAMPO[nome] });
+  }
   return campos;
 }
 
@@ -125,9 +134,6 @@ export function camposCodigo(campos: PivotField[], ind = '  '): string {
     if (v && typeof v === 'object') return `{ ${Object.entries(v).map(([k, x]) => `${k}: ${valor(x)}`).join(', ')} }`;
     return String(v);
   };
-  const linhas = campos.map((c) => {
-    const area = c.area ? '' : ' // sem área: fica disponível no painel';
-    return `${ind}${valor(c)},${area}`;
-  });
+  const linhas = campos.map((c) => `${ind}${valor(c)},${c.area ? '' : ' // sem área: fica no painel para arrastar'}`);
   return `[\n${linhas.join('\n')}\n${ind.slice(2)}]`;
 }

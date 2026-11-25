@@ -4,12 +4,12 @@ import '@brunomouradev/data-grid';
 import type { BmPivotGrid, PivotCellEventDetail, PivotGridMessages } from '@brunomouradev/pivot-grid';
 import type { ColumnDef } from '@brunomouradev/data-grid';
 import { Evento, Linguagem, instalacao } from '../shared/codigo';
-import { Fatura, gerarFaturas } from '../shared/data';
 import { PainelCodigo } from '../shared/painel-codigo';
 import { PainelEventos } from '../shared/painel-eventos';
 import { montarCampos } from './campos';
 import { gerarCodigoPivot } from './gerador-codigo-pivot';
 import { MODOS_EXIBICAO, OpcoesPivot, PIVOT_PADRAO } from './opcoes-pivot';
+import { Venda, gerarVendas } from './vendas';
 
 type ChaveBool = { [K in keyof OpcoesPivot]: OpcoesPivot[K] extends boolean ? K : never }[keyof OpcoesPivot];
 
@@ -21,19 +21,31 @@ interface Toggle {
 
 const MENSAGENS: Partial<PivotGridMessages> = {
   grandTotal: 'Total geral',
-  noData: 'Nenhum faturamento no período',
+  noData: 'Nenhuma venda no período',
   availableFields: 'Campos disponíveis',
 };
 
 /** Colunas da DataGrid do drill down. */
-const COLUNAS_DETALHE: ColumnDef<Fatura>[] = [
-  { dataField: 'id', caption: 'Nº', width: 70, format: 'integer' },
-  { dataField: 'cliente.nome', caption: 'Cliente' },
-  { dataField: 'cliente.uf', caption: 'UF', width: 60, alignment: 'center' },
+const COLUNAS_DETALHE: ColumnDef<Venda>[] = [
+  { dataField: 'pedido', caption: 'Pedido', width: 90, format: 'integer' },
+  { dataField: 'data', caption: 'Data', format: 'date', sortOrder: 'desc' },
+  { dataField: 'cidade', caption: 'Cidade' },
+  { dataField: 'uf', caption: 'UF', width: 60, alignment: 'center' },
+  { dataField: 'canal', caption: 'Canal' },
   { dataField: 'vendedor', caption: 'Vendedor' },
-  { dataField: 'status', caption: 'Status' },
-  { dataField: 'vencimento', caption: 'Vencimento', format: 'date' },
-  { dataField: 'valor', caption: 'Valor', format: 'currency' },
+  { dataField: 'produto', caption: 'Produto' },
+  { dataField: 'quantidade', caption: 'Qtd', width: 70, format: 'integer' },
+  { dataField: 'precoUnitario', caption: 'Preço unit.', format: 'currency' },
+  { dataField: 'desconto', caption: 'Desc.', width: 80, format: { style: 'percent', maximumFractionDigits: 0 } },
+  { dataField: 'faturamento', caption: 'Faturamento', format: 'currency' },
+  { dataField: 'lucro', caption: 'Lucro', format: 'currency', cssClass: (v: number) => (v < 0 ? 'negativo' : '') },
+];
+
+/** Totais da DataGrid do drill down. */
+const TOTAIS_DETALHE = [
+  { column: 'quantidade', summaryType: 'sum' as const },
+  { column: 'faturamento', summaryType: 'sum' as const },
+  { column: 'lucro', summaryType: 'sum' as const },
 ];
 
 @Component({
@@ -44,7 +56,7 @@ const COLUNAS_DETALHE: ColumnDef<Fatura>[] = [
 })
 export class PivotPage {
   readonly o = signal<OpcoesPivot>({ ...PIVOT_PADRAO });
-  readonly pivot = viewChild<ElementRef<BmPivotGrid<Fatura>>>('pivot');
+  readonly pivot = viewChild<ElementRef<BmPivotGrid<Venda>>>('pivot');
 
   /** Valor derivado que só muda quando as opções listadas mudam (não perde o que o usuário arrastou). */
   private derivar<T>(chaves: (keyof OpcoesPivot)[], fn: (o: OpcoesPivot) => T): Signal<T> {
@@ -56,13 +68,13 @@ export class PivotPage {
   }
 
   // ───────── Dados ─────────
-  private readonly local = gerarFaturas(500);
-  private grande?: Fatura[];
-  readonly dados = computed(() => (this.o().fonte === 'grande' ? (this.grande ??= gerarFaturas(20_000, 11)) : this.local));
+  private readonly local = gerarVendas(5_000);
+  private grande?: Venda[];
+  readonly dados = computed(() => (this.o().fonte === 'grande' ? (this.grande ??= gerarVendas(50_000, 7)) : this.local));
 
   // ───────── Configuração derivada ─────────
   readonly campos = this.derivar(
-    ['linhas', 'colunas', 'expandido', 'summaryType', 'quantidade', 'summaryDisplayMode', 'conditionalFormat', 'ordenarPorTotal', 'topN', 'topNMenores', 'filtroInicial'],
+    ['linhas', 'colunas', 'expandido', 'medida', 'summaryType', 'segundoValor', 'summaryDisplayMode', 'conditionalFormat', 'ordenarPorTotal', 'topN', 'topNMenores', 'filtroInicial'],
     (o) => montarCampos(o),
   );
   readonly exportFormats = this.derivar(['exportXlsx', 'exportCsv'], (o) => {
@@ -122,7 +134,7 @@ export class PivotPage {
     { m: 'collapseAll', rotulo: 'Recolher tudo' },
     { m: 'sortBySummary', rotulo: 'Ordenar linhas pelo total ↓' },
     { m: 'percent', rotulo: 'Mostrar % do total geral' },
-    { m: 'moveField', rotulo: 'Mover "Forma" para colunas' },
+    { m: 'moveField', rotulo: 'Mover "Canal" para colunas' },
     { m: 'drillDown', rotulo: 'drillDown() do total geral' },
     { m: 'getFields', rotulo: 'getFields()' },
     { m: 'exportToExcel', rotulo: 'Exportar Excel' },
@@ -137,12 +149,12 @@ export class PivotPage {
     switch (m) {
       case 'expandAll': p.expandAll('both'); detalhe = "expandAll('both')"; break;
       case 'collapseAll': p.collapseAll('both'); detalhe = "collapseAll('both')"; break;
-      case 'sortBySummary': p.sortBySummary('valor', [], 'desc'); detalhe = "sortBySummary('valor', [], 'desc')"; break;
+      case 'sortBySummary': p.sortBySummary(this.o().medida, [], 'desc'); detalhe = `sortBySummary('${this.o().medida}', [], 'desc')`; break;
       case 'percent':
-        p.updateField('valor', { summaryDisplayMode: 'percentOfGrandTotal' });
-        detalhe = "updateField('valor', { summaryDisplayMode: 'percentOfGrandTotal' })";
+        p.updateField(this.o().medida, { summaryDisplayMode: 'percentOfGrandTotal' });
+        detalhe = `updateField('${this.o().medida}', { summaryDisplayMode: 'percentOfGrandTotal' })`;
         break;
-      case 'moveField': p.moveField('forma', 'column'); detalhe = "moveField('forma', 'column')"; break;
+      case 'moveField': p.moveField('canal', 'column'); detalhe = "moveField('canal', 'column')"; break;
       case 'drillDown': {
         const registros = p.drillDown([], []);
         this.detalhe.set({ titulo: 'Total geral', registros });
@@ -163,8 +175,9 @@ export class PivotPage {
 
   // ───────── Eventos e drill down ─────────
   readonly eventos = signal<Evento[]>([]);
-  readonly detalhe = signal<{ titulo: string; registros: Fatura[] } | null>(null);
+  readonly detalhe = signal<{ titulo: string; registros: Venda[] } | null>(null);
   readonly colunasDetalhe = COLUNAS_DETALHE;
+  readonly totaisDetalhe = TOTAIS_DETALHE;
 
   registrar(nome: string, detalhe: string) {
     const hora = new Date().toLocaleTimeString('pt-BR');
@@ -174,13 +187,16 @@ export class PivotPage {
   /** Texto de um valor do caminho: trimestre vira "T1", mês vira "mar". */
   private texto(campo: string, v: any): string {
     if (campo === 'trimestre') return `T${v}`;
+    if (campo === 'diaSemana' && typeof v === 'number') {
+      return new Date(2024, 0, 7 + v).toLocaleDateString(this.o().locale, { weekday: 'short' }).replace('.', '');
+    }
     if (campo === 'mes' && typeof v === 'number') {
       return new Date(2000, v - 1, 1).toLocaleDateString(this.o().locale, { month: 'short' }).replace('.', '');
     }
     return String(v);
   }
 
-  private caminho(d: PivotCellEventDetail<Fatura>): string {
+  private caminho(d: PivotCellEventDetail<Venda>): string {
     const partes = (path: any[], campos: string[]) => path.map((v, i) => this.texto(campos[i], v)).join(' › ');
     const linha = d.rowType === 'grand' ? 'Total geral' : partes(d.rowPath, d.rowFields);
     const coluna = d.columnType === 'grand' ? 'Total geral' : partes(d.columnPath, d.columnFields);

@@ -30,3 +30,10 @@ body {
  */
 bm-data-grid::part(atrasado) { --bm-row-bg: #fff1f0; color: #c92a2a; }
 bm-data-grid::part(negativo) { color: #c92a2a; font-weight: 600; }
+
+/*
+ * Contorno: no painel de campos do PivotGrid, o chip da área "Valores" tem dois seletores
+ * (agregação e "mostrar como") que espremem o nome do campo até sobrar uma letra.
+ * Deixar o chip quebrar linha mostra o nome inteiro. A correção definitiva é na lib.
+ */
+bm-pivot-grid::part(field-chip) { flex-wrap: wrap; height: auto; row-gap: 4px; }

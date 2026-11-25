@@ -12,13 +12,14 @@ export interface OpcoesPivot {
   corPrimaria: string;
 
   // Layout dos campos
-  linhas: 'uf-cliente' | 'vendedor-status' | 'forma-uf';
-  colunas: 'ano-trimestre' | 'ano-mes' | 'status' | 'nenhuma';
+  linhas: 'regiao-uf' | 'categoria-produto' | 'canal-vendedor' | 'uf-cidade';
+  colunas: 'ano-trimestre' | 'ano-mes' | 'ano' | 'canal' | 'nenhuma';
   expandido: boolean;
 
   // Valores
+  medida: 'faturamento' | 'lucro' | 'quantidade';
   summaryType: SummaryType;
-  quantidade: boolean;
+  segundoValor: 'nenhum' | 'quantidade' | 'lucro' | 'ticket';
   summaryDisplayMode: SummaryDisplayMode;
   conditionalFormat: 'nenhum' | 'colorScale' | 'dataBar' | 'regra';
 
@@ -60,14 +61,15 @@ export const PIVOT_PADRAO: OpcoesPivot = {
   density: 'standard',
   locale: 'pt-BR',
   corPrimaria: '',
-  linhas: 'uf-cliente',
+  linhas: 'regiao-uf',
   colunas: 'ano-trimestre',
   expandido: false,
+  medida: 'faturamento',
   summaryType: 'sum',
-  quantidade: false,
+  segundoValor: 'nenhum',
   summaryDisplayMode: 'absolute',
   conditionalFormat: 'dataBar',
-  ordenarPorTotal: false,
+  ordenarPorTotal: true,
   topN: 0,
   topNMenores: false,
   filtroInicial: false,
@@ -85,7 +87,7 @@ export const PIVOT_PADRAO: OpcoesPivot = {
   showExportButton: true,
   exportXlsx: true,
   exportCsv: true,
-  exportFileName: 'faturamento',
+  exportFileName: 'vendas',
   mensagens: false,
 };
 

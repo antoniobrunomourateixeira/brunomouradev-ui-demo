@@ -38,13 +38,13 @@ function desligadas(o: OpcoesPivot): string[] {
 
 const TEXTOS = `{
   grandTotal: 'Total geral',
-  noData: 'Nenhum faturamento no período',
+  noData: 'Nenhuma venda no período',
   availableFields: 'Campos disponíveis',
 }`;
 
 function declaracoes(o: OpcoesPivot, ts: boolean, kw: string): string {
   const campos = camposCodigo(montarCampos(o));
-  const tipo = ts ? ': PivotField<Fatura>[]' : '';
+  const tipo = ts ? ': PivotField<Venda>[]' : '';
   let out = `${kw}campos${tipo} = ${campos};`;
   if (o.mensagens) out += `\n\n${kw}textos${ts ? ': Partial<PivotGridMessages>' : ''} = ${TEXTOS};`;
   return out;
@@ -59,7 +59,7 @@ function css(o: OpcoesPivot): string {
 
 // ─────────────── Angular ───────────────
 function angular(o: OpcoesPivot): ArquivoCodigo[] {
-  const props = ['[dataSource]="faturas"', '[fields]="campos"'];
+  const props = ['[dataSource]="vendas"', '[fields]="campos"'];
   for (const p of desligadas(o)) props.push(`[${p}]="false"`);
   if (o.mensagens) props.push('[messages]="textos"');
   const corpo = ['#pivot', ...atributos(o), ...props, '(cell-dblclick)="detalhar($event.detail)"', '(fields-changed)="salvarLayout($event.detail.fields)"', 'style="height: 600px"'];
@@ -69,28 +69,28 @@ function angular(o: OpcoesPivot): ArquivoCodigo[] {
   const ts = `import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, ViewChild } from '@angular/core';
 import '@brunomouradev/pivot-grid'; // registra <bm-pivot-grid>
 import type { ${tipos.join(', ')} } from '@brunomouradev/pivot-grid';
-import { Fatura } from './fatura';
+import { Venda } from './venda';
 
 @Component({
-  selector: 'app-faturamento',
-  templateUrl: './faturamento.component.html',
+  selector: 'app-vendas',
+  templateUrl: './vendas.component.html',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class FaturamentoComponent {
-  @ViewChild('pivot') pivot!: ElementRef<BmPivotGrid<Fatura>>;
+export class VendasComponent {
+  @ViewChild('pivot') pivot!: ElementRef<BmPivotGrid<Venda>>;
 
-  faturas: Fatura[] = []; // atribua um array novo para atualizar
+  vendas: Venda[] = []; // atribua um array novo para atualizar
 
 ${indentar(declaracoes(o, true, ''), 2)}
 
   /** Duplo clique: os registros por trás da célula (drill down). */
-  detalhar(e: PivotCellEventDetail<Fatura>) {
+  detalhar(e: PivotCellEventDetail<Venda>) {
     console.log(e.rowPath, e.columnPath, e.records);
   }
 
   /** Layout mudado pelo usuário (arrastar, filtrar, ordenar): salve e devolva em [fields]. */
   salvarLayout(campos: PivotField[]) {
-    localStorage.setItem('faturamento-pivot', JSON.stringify(campos));
+    localStorage.setItem('vendas-pivot', JSON.stringify(campos));
   }
 
   exportar() {
@@ -98,8 +98,8 @@ ${indentar(declaracoes(o, true, ''), 2)}
   }
 }`;
   const arquivos: ArquivoCodigo[] = [
-    { nome: 'faturamento.component.html', codigo: html },
-    { nome: 'faturamento.component.ts', codigo: ts },
+    { nome: 'vendas.component.html', codigo: html },
+    { nome: 'vendas.component.ts', codigo: ts },
   ];
   if (css(o)) arquivos.push({ nome: 'styles.scss', codigo: css(o) });
   arquivos.push({
@@ -122,7 +122,7 @@ function react(o: OpcoesPivot): ArquivoCodigo[] {
   const codigo = `import { useEffect, useRef } from 'react';
 import '@brunomouradev/pivot-grid';
 import type { ${tipos.join(', ')} } from '@brunomouradev/pivot-grid';
-import type { Fatura } from './fatura';
+import type { Venda } from './venda';
 
 declare global {
   namespace JSX { interface IntrinsicElements { 'bm-pivot-grid': any } }
@@ -130,8 +130,8 @@ declare global {
 
 ${declaracoes(o, true, 'const ')}
 
-export function Faturamento({ faturas }: { faturas: Fatura[] }) {
-  const ref = useRef<BmPivotGrid<Fatura>>(null);
+export function Vendas({ vendas }: { vendas: Venda[] }) {
+  const ref = useRef<BmPivotGrid<Venda>>(null);
 
   useEffect(() => {
     const pivot = ref.current!;
@@ -142,8 +142,8 @@ ${sets.join('\n')}
   }, []);
 
   useEffect(() => {
-    ref.current!.dataSource = faturas;
-  }, [faturas]);
+    ref.current!.dataSource = vendas;
+  }, [vendas]);
 
   return (
     <bm-pivot-grid
@@ -153,14 +153,14 @@ ${attrs.map((a) => '      ' + a).join('\n')}
     />
   );
 }`;
-  const arquivos: ArquivoCodigo[] = [{ nome: 'Faturamento.tsx', codigo }];
+  const arquivos: ArquivoCodigo[] = [{ nome: 'Vendas.tsx', codigo }];
   if (css(o)) arquivos.push({ nome: 'index.css', codigo: css(o) });
   return arquivos;
 }
 
 // ─────────────── Vue ───────────────
 function vue(o: OpcoesPivot): ArquivoCodigo[] {
-  const props = [':dataSource.prop="faturas"', ':fields.prop="campos"'];
+  const props = [':dataSource.prop="vendas"', ':fields.prop="campos"'];
   for (const p of desligadas(o)) props.push(`:${p}.prop="false"`);
   if (o.mensagens) props.push(':messages.prop="textos"');
   const corpo = [...atributos(o), ...props, '@cell-dblclick="(e) => console.log(e.detail.records)"', 'style="height: 600px"'];
@@ -176,14 +176,14 @@ ${corpo.map((l) => '    ' + l).join('\n')}
 import { ref } from 'vue';
 import '@brunomouradev/pivot-grid';
 import type { ${tipos.join(', ')} } from '@brunomouradev/pivot-grid';
-import type { Fatura } from './fatura';
+import type { Venda } from './venda';
 
-const faturas = ref<Fatura[]>([]);
+const vendas = ref<Venda[]>([]);
 
 ${declaracoes(o, true, 'const ')}
 </script>`;
   return [
-    { nome: 'Faturamento.vue', codigo },
+    { nome: 'Vendas.vue', codigo },
     {
       nome: 'vite.config.ts',
       codigo: `import vue from '@vitejs/plugin-vue';
@@ -205,7 +205,7 @@ function html(o: OpcoesPivot): ArquivoCodigo[] {
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Faturamento</title>${estilo ? `\n  <style>${estilo}</style>` : ''}
+  <title>Vendas</title>${estilo ? `\n  <style>${estilo}</style>` : ''}
 </head>
 <body>
   <bm-pivot-grid
@@ -221,7 +221,7 @@ ${indentar(declaracoes(o, false, 'const '), 2)}
 
   const pivot = document.getElementById('pivot');
 ${sets.join('\n')}
-  pivot.dataSource = await fetch('/api/faturas').then((r) => r.json());
+  pivot.dataSource = await fetch('/api/vendas').then((r) => r.json());
 
   // Duplo clique numa célula: os registros por trás dela (drill down)
   pivot.addEventListener('cell-dblclick', (e) => console.log(e.detail.records));
